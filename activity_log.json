@@ -1,0 +1,602 @@
+[
+  {
+    "timestamp": "2026-04-30T06:36:49.188661",
+    "username": "مدير_صيانة",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: 1 للماكينة كفته"
+  },
+  {
+    "timestamp": "2026-04-30T17:47:08.666060",
+    "username": "مدير_صيانة",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'صيانه شهريه' للماكينة MIX-1 بواسطة تيم الكرد "
+  },
+  {
+    "timestamp": "2026-04-30T17:47:46.396544",
+    "username": "مدير_صيانة",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'صيانه شهريه' للماكينة MIX-2 بواسطة تيم الكرد "
+  },
+  {
+    "timestamp": "2026-04-30T17:47:55.419920",
+    "username": "مدير_صيانة",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'صيانه شهريه' للماكينة MIX-2 بواسطة تيم الكرد "
+  },
+  {
+    "timestamp": "2026-04-30T17:50:15.478053",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير زيت جير بوكس حصيره اماميه' للماكينة BO-R (فترة 21900 ساعة)"
+  },
+  {
+    "timestamp": "2026-04-30T17:51:40.943032",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير زيت جير بوكس حصيره مسننه تفتيح العوادم ' للماكينة BO-R (فترة 21900 ساعة)"
+  },
+  {
+    "timestamp": "2026-04-30T17:53:06.293096",
+    "username": "مدير_صيانة",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'تغير زيت جير بوكس حصيره اماميه' للماكينة BO-R بواسطة حسام،مصطفي"
+  },
+  {
+    "timestamp": "2026-04-30T17:53:52.637035",
+    "username": "مدير_صيانة",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'تغير زيت جير بوكس حصيره مسننه تفتيح العوادم ' للماكينة BO-R بواسطة حسام،مصطفي"
+  },
+  {
+    "timestamp": "2026-04-30T17:58:00.345399",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'صيانه شهريه' للماكينة BO-P (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-04-30T17:58:39.794331",
+    "username": "مدير_صيانة",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'صيانه شهريه' للماكينة BO-P بواسطة تيم الكرد "
+  },
+  {
+    "timestamp": "2026-04-30T18:03:06.381336",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'صيانه شهريه (تشحيم+نظافه)' للماكينة مروحه راديال التنظيف (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-04-30T18:03:42.710593",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'صيانه شهريه (تشحيم+نظافه)' للماكينة مروحه راديال كرد1 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-04-30T18:04:17.399365",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'صيانه شهريه (تشحيم+نظافه)' للماكينة مروحه راديال كرد2 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-04-30T18:04:48.487685",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'صيانه شهريه (تشحيم+نظافه)' للماكينة مروحه راديال تمشيط1 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-04-30T18:05:32.581048",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'صيانه شهريه (تشحيم+نظافه)' للماكينة مروحه راديال تمشيط2 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-01T06:55:11.027779",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: زياره توكيل(صيانه شهريه) للماكينة كمبروسر 1صغير"
+  },
+  {
+    "timestamp": "2026-05-01T06:55:35.041405",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: زياره توكيل(صيانه شهريه) للماكينة كمبروسر 2صغير"
+  },
+  {
+    "timestamp": "2026-05-01T06:56:34.621183",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: زياره توكيل(صيانه شهريه) للماكينة كمبروسر 3كبير"
+  },
+  {
+    "timestamp": "2026-05-01T06:56:58.374040",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: زياره توكيل(صيانه شهريه) للماكينة كمبروسر 4كبير"
+  },
+  {
+    "timestamp": "2026-05-01T06:59:44.919839",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: زياره توكيل(صيانه شهريه) للماكينة كمبروسر 1صغير"
+  },
+  {
+    "timestamp": "2026-05-01T07:00:10.478429",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: زياره توكيل(صيانه شهريه) للماكينة كمبروسر 2صغير"
+  },
+  {
+    "timestamp": "2026-05-01T07:51:02.380882",
+    "username": "مدير_صيانة",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه  للماكينة تمشيط18"
+  },
+  {
+    "timestamp": "2026-05-01T07:54:07.503902",
+    "username": "مدير_صيانة",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه  للماكينة تمشيط 20"
+  },
+  {
+    "timestamp": "2026-05-01T07:55:09.845796",
+    "username": "مدير_صيانة",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: تلف سير1209 للماكينة تمشيط1"
+  },
+  {
+    "timestamp": "2026-05-01T07:55:59.852263",
+    "username": "مدير_صيانة",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه  للماكينة تمشيط1"
+  },
+  {
+    "timestamp": "2026-05-01T07:56:20.996179",
+    "username": "مدير_صيانة",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه  للماكينة تمشيط 4"
+  },
+  {
+    "timestamp": "2026-05-01T07:57:15.288370",
+    "username": "مدير_صيانة",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه  للماكينة تمشيط 5"
+  },
+  {
+    "timestamp": "2026-05-01T07:58:50.199023",
+    "username": "مدير_صيانة",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: تلف سير390 للماكينة تمشيط1"
+  },
+  {
+    "timestamp": "2026-05-01T07:59:14.675724",
+    "username": "مدير_صيانة",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: تلف سير1014 للماكينة تمشيط1"
+  },
+  {
+    "timestamp": "2026-05-01T08:00:57.428444",
+    "username": "مدير_صيانة",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه للماكينة تمشيط2"
+  },
+  {
+    "timestamp": "2026-05-01T08:14:17.936877",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: تلف بليه6202 للماكينة سحب10"
+  },
+  {
+    "timestamp": "2026-05-01T08:15:16.964578",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: تلف سير1083 للماكينة سحب10"
+  },
+  {
+    "timestamp": "2026-05-02T06:04:47.123429",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة '   اتشحيم سلندرات التغزيه والقطع والوصل وعمود الدعم والفرش والدرافت من فوق' للماكينة تمشيط1 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-02T06:05:05.224127",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة '   اتشحيم سلندرات التغزيه والقطع والوصل وعمود الدعم والفرش والدرافت من فوق' للماكينة تمشيط1 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-02T06:05:31.248799",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة '   اتشحيم سلندرات التغزيه والقطع والوصل وعمود الدعم والفرش والدرافت من فوق' للماكينة تمشيط2 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-02T06:06:53.895348",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة '   اتشحيم سلندرات التغزيه والقطع والوصل وعمود الدعم والفرش والدرافت من فوق' للماكينة تمشيط3 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-02T06:07:16.536223",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة '   اتشحيم سلندرات التغزيه والقطع والوصل وعمود الدعم والفرش والدرافت من فوق' للماكينة تمشيط3 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-02T06:07:43.065770",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة '   اتشحيم سلندرات التغزيه والقطع والوصل وعمود الدعم والفرش والدرافت من فوق' للماكينة تمشيط2 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-02T06:07:57.864303",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة '   اتشحيم سلندرات التغزيه والقطع والوصل وعمود الدعم والفرش والدرافت من فوق' للماكينة تمشيط2 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-02T06:26:43.819865",
+    "username": "admin",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة '   اتشحيم سلندرات التغزيه والقطع والوصل وعمود الدعم والفرش والدرافت من فوق' للماكينة تمشيط1 بواسطة تيم التمشيط"
+  },
+  {
+    "timestamp": "2026-05-02T06:27:14.252221",
+    "username": "admin",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة '   اتشحيم سلندرات التغزيه والقطع والوصل وعمود الدعم والفرش والدرافت من فوق' للماكينة تمشيط1 بواسطة تيم التمشيط"
+  },
+  {
+    "timestamp": "2026-05-02T06:42:37.608354",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: تلف سير 1200 فلات للماكينة كرد11"
+  },
+  {
+    "timestamp": "2026-05-02T11:37:01.865981",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: تلف بليه مضرب تفتيح dfk جنب شمال للماكينة كرد22"
+  },
+  {
+    "timestamp": "2026-05-02T11:38:47.582399",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه للماكينة مكبس السايلوهات"
+  },
+  {
+    "timestamp": "2026-05-02T11:40:38.785098",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: قطع جنزير درافيل التغذيه للماكينة سيلو1"
+  },
+  {
+    "timestamp": "2026-05-02T11:43:02.186549",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه للماكينة دنابر محطه غزل1"
+  },
+  {
+    "timestamp": "2026-05-02T11:48:33.796562",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه للماكينة مكبس السايلوهات"
+  },
+  {
+    "timestamp": "2026-05-02T20:16:16.519542",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'فلتر هواء كبير' للقسم الضواغط (الرصيد: 1)"
+  },
+  {
+    "timestamp": "2026-05-02T20:22:12.711762",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'فلتر هواء كبير' للقسم الضواغط (الرصيد: 1)"
+  },
+  {
+    "timestamp": "2026-05-02T20:23:36.496730",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'فلتر زيت (كبيروصغير)' للقسم الضواغط (الرصيد: 3)"
+  },
+  {
+    "timestamp": "2026-05-02T20:24:39.179258",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'فاصل زيت كبير' للقسم الضواغط (الرصيد: 3)"
+  },
+  {
+    "timestamp": "2026-05-02T20:26:04.844994",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم تعديل قطعة غيار 'فاصل زيت كبير' للقسم الضواغط"
+  },
+  {
+    "timestamp": "2026-05-02T20:27:18.117834",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'شحم كيزر' للقسم الضواغط (الرصيد: 1)"
+  },
+  {
+    "timestamp": "2026-05-02T20:28:19.960622",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'زيت كيزر' للقسم الضواغط (الرصيد: 100)"
+  },
+  {
+    "timestamp": "2026-05-02T20:30:26.534911",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'فلتر هواءصغير' للقسم الضواغط (الرصيد: 1)"
+  },
+  {
+    "timestamp": "2026-05-02T20:31:56.866437",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'فاصل زيت صغير' للقسم الضواغط (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-02T20:34:18.727557",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'فلتر مجفف قبل' للقسم الضواغط (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-02T20:35:49.262876",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم تعديل قطعة غيار 'فاصل زيت كبير' للقسم الضواغط"
+  },
+  {
+    "timestamp": "2026-05-02T20:37:02.638006",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'فلتر مجفف قبل' للقسم الضواغط (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-02T20:37:50.526462",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'فلتر مجفف بعد' للقسم الضواغط (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-02T20:46:54.058530",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'فلتر مجفف بعد' للقسم الضواغط (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-02T20:49:03.221703",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'فاصل زيت كبير' للقسم الضواغط (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:05:51.936387",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير فرشه نازع امامي يوجد شمال ماكينه   ' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:09:23.333110",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير نقل حركه من موتور دوفر يمين ماكينه' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:11:06.244473",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير حركه دوفر نفسه يمين مكنه' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:11:51.822384",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير مضرب تفتيح دفك ' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:12:38.569989",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير سلندر يمين مكنه' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:13:44.092829",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير  فيد رول يمين مكنه من خلف' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:14:40.170544",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير نقل حركه من سلندر لليكر ان ' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:15:48.952177",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير عصارات خروج شريط امامي ' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:16:48.165084",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير  نقل حركه من دوفر لمجموعه نازع شريط اماميه' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:18:33.848512",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير تحريك عصارتين خروج شريط يوجد داخل شاسيه امامي' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:19:46.869717",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير تحرك رولين نازع بمنطقه دوفر' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:21:28.519451",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير موتور عوادم خلفي  شمال مكنه' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:22:33.229598",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير 3 ليكر ان ' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:23:29.859219",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير فرشه  تنظيف فلاتس سريعه خلفيه' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:24:12.564485",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير فلتس مسنن' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:26:37.945374",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير سحب شريط من ع سكويز رول' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:27:25.697507",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير فلات رصاص كويلر' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:29:08.939558",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير كويلر مسنن ' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:29:55.709429",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير قاعده اسطوانه كويلر ' للقسم الكرد (الرصيد: 0)"
+  },
+  {
+    "timestamp": "2026-05-03T06:40:41.179018",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير نقل حركه من موتور للمضاربclx' للقسم التفتيح (الرصيد: 1)"
+  },
+  {
+    "timestamp": "2026-05-03T06:41:39.180083",
+    "username": "admin",
+    "action_type": "add_spare_part",
+    "details": "تم إضافة قطعة غيار 'سير نقل حركه بين مضربين' للقسم التفتيح (الرصيد: 1)"
+  },
+  {
+    "timestamp": "2026-05-03T11:36:52.994513",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: اداره مخاطر للماكينة CLU-1"
+  },
+  {
+    "timestamp": "2026-05-03T11:37:18.842355",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: اداره مخاطر للماكينة CLU-2"
+  },
+  {
+    "timestamp": "2026-05-03T11:38:07.145177",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: اداره مخاطر للماكينة CLX-1"
+  },
+  {
+    "timestamp": "2026-05-03T11:38:41.272595",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: اداره مخاطر للماكينة CLX-2"
+  },
+  {
+    "timestamp": "2026-05-03T11:39:37.133309",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: اداره مخاطر للماكينة MIX-1"
+  },
+  {
+    "timestamp": "2026-05-03T11:40:00.626709",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: اداره مخاطر للماكينة MIX-2"
+  },
+  {
+    "timestamp": "2026-05-03T11:40:50.198934",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: اداره مخاطر للماكينة TS-T5-1"
+  },
+  {
+    "timestamp": "2026-05-03T11:41:12.782221",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: اداره مخاطر للماكينة TS-T5-2"
+  },
+  {
+    "timestamp": "2026-05-03T11:42:06.593639",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: اداره مخاطر للماكينة BO-R"
+  },
+  {
+    "timestamp": "2026-05-04T10:15:56.767175",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه للماكينة تمشيط1"
+  },
+  {
+    "timestamp": "2026-05-04T10:16:23.100831",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه للماكينة تمشيط3"
+  },
+  {
+    "timestamp": "2026-05-04T10:17:47.194004",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه للماكينة تمشيط2"
+  },
+  {
+    "timestamp": "2026-05-04T10:18:44.949108",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه للماكينة تمشيط13"
+  },
+  {
+    "timestamp": "2026-05-04T10:20:26.695102",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه للماكينة تمشيط 4"
+  },
+  {
+    "timestamp": "2026-05-04T10:21:01.108802",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه للماكينة تمشيط2"
+  },
+  {
+    "timestamp": "2026-05-04T10:23:24.794548",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة '(   اتشحيم سلندرات التغزيه والقطع والوصل وعمود الدعم والفرش والدرافت من فوق)صيانه شهريه ' للماكينة تمشيط6 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-04T10:24:50.558470",
+    "username": "admin",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة '(   اتشحيم سلندرات التغزيه والقطع والوصل وعمود الدعم والفرش والدرافت من فوق)صيانه شهريه ' للماكينة تمشيط6 بواسطة تيم التمشيط"
+  }
+]
