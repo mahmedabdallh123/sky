@@ -2055,13 +2055,13 @@ with tabs[-1]:
     support_config = load_support_config()
     current_image_url = support_config.get("image_url", "")
     
-    st.subheader("🖼️ صورة المطور")
+    st.subheader("🖼️ ")
     
     if current_image_url and current_image_url.strip():
         # الصورة موجودة مسبقاً -> عرضها فقط (بدون أي خيار للحذف أو التغيير)
         try:
             st.image(current_image_url, use_container_width=True)
-            st.caption("✅ تم رفع الصورة (لا يمكن تغييرها بعد الآن)")
+            st.caption("✅ ")
         except:
             st.warning("⚠️ تعذر عرض الصورة المحفوظة")
     else:
