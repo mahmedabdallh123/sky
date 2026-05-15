@@ -29,7 +29,6 @@ APP_CONFIG = {
     "SPARE_PARTS_SHEET": "قطع_الغيار",
     "SPARE_PARTS_COLUMNS": ["اسم القطعة", "المقاس", "قوه الشد", "الرصيد الموجود", "مدة التوريد", "ضرورية", "القسم", "رابط_الصورة"],
     "MAINTENANCE_SHEET": "صيانة_وقائية",
-    "SPARE_PARTS_COLUMNS": ["اسم القطعة", "المقاس", "قوه الشد", "الرصيد الموجود", "مدة التوريد", "ضرورية", "القسم", "رابط_الصورة", "حد_الإنذار"],
     "MAINTENANCE_COLUMNS": ["المعدة", "نوع_الصيانة", "اسم_البند", "الفترة_بالأيام", "آخر_تنفيذ", "التاريخ_التالي", "ملاحظات", "قطع_غيار_مستخدمة_افتراضية", "رابط_الصورة"],
     "GENERAL_SECTION": "عام"
 }
@@ -59,7 +58,7 @@ SESSION_DURATION = timedelta(minutes=APP_CONFIG["SESSION_DURATION_MINUTES"])
 MAX_ACTIVE_USERS = APP_CONFIG["MAX_ACTIVE_USERS"]
 IMAGES_FOLDER = APP_CONFIG["IMAGES_FOLDER"]
 EQUIPMENT_CONFIG_FILE = "equipment_config.json"
-SUPPORT_CONFIG_FILE = "support_config.json"   # جديد: إعدادات الدعم الفني
+SUPPORT_CONFIG_FILE = "support_config.json"
 
 GITHUB_EXCEL_URL = f"https://github.com/{APP_CONFIG['REPO_NAME'].split('/')[0]}/{APP_CONFIG['REPO_NAME'].split('/')[1]}/raw/{APP_CONFIG['BRANCH']}/{APP_CONFIG['FILE_PATH']}"
 GITHUB_USERS_URL = "https://raw.githubusercontent.com/mahmedabdallh123/sky/refs/heads/main/users.json"
@@ -108,9 +107,8 @@ def get_image_component(image_url, caption=""):
         st.warning(f"⚠️ تعذر عرض الصورة: {image_url}")
         return None
 
-# ------------------------------- دوال إعدادات الدعم الفني (جديدة) -------------------------------
+# ------------------------------- دوال إعدادات الدعم الفني -------------------------------
 def load_support_config():
-    """تحميل إعدادات الدعم الفني (رابط الصورة، رابط اليوتيوب)"""
     default_config = {"image_url": "", "youtube_link": ""}
     if GITHUB_AVAILABLE:
         try:
@@ -132,7 +130,6 @@ def load_support_config():
     return default_config
 
 def save_support_config(config):
-    """حفظ إعدادات الدعم الفني على GitHub والمحلي"""
     config_str = json.dumps(config, indent=2, ensure_ascii=False)
     if GITHUB_AVAILABLE:
         try:
@@ -259,9 +256,11 @@ def load_activity_log():
 
 # ------------------------------- دوال الصيانة الوقائية -------------------------------
 def load_maintenance_tasks():
+    """تحميل مهام الصيانة الوقائية مع معالجة خطأ عدم وجود الورقة"""
     if not os.path.exists(APP_CONFIG["LOCAL_FILE"]):
         return pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
     try:
+        # محاولة قراءة الورقة المحددة
         df = pd.read_excel(APP_CONFIG["LOCAL_FILE"], sheet_name=APP_CONFIG["MAINTENANCE_SHEET"])
         df.columns = df.columns.astype(str).str.strip()
         for col in APP_CONFIG["MAINTENANCE_COLUMNS"]:
@@ -276,7 +275,8 @@ def load_maintenance_tasks():
             df["الفترة_بالأيام"] = pd.to_numeric(df["الفترة_بالأيام"], errors='coerce').fillna(0)
         return df
     except Exception as e:
-        st.error(f"خطأ في تحميل مهام الصيانة: {e}")
+        # إذا لم توجد الورقة، نرجع DataFrame فارغ بدون رسالة خطأ
+        # (الخطأ يحدث فقط عند محاولة القراءة، نتعامل معه بهدوء)
         return pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
 
 def get_tasks_for_equipment(equipment_name):
@@ -286,9 +286,10 @@ def get_tasks_for_equipment(equipment_name):
     return df[df["المعدة"] == equipment_name]
 
 def add_maintenance_task(sheets_edit, equipment, task_name, period_hours, start_date=None, notes="", default_spare="", image_url=None):
-    df = sheets_edit.get(APP_CONFIG["MAINTENANCE_SHEET"])
-    if df is None:
-        df = pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
+    # التأكد من وجود الورقة في sheets_edit
+    if APP_CONFIG["MAINTENANCE_SHEET"] not in sheets_edit:
+        sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
+    df = sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]]
     if start_date is None:
         start_date = datetime.now().date()
     period_days = period_hours / 24.0
@@ -314,7 +315,6 @@ def get_upcoming_maintenance(days_ahead=3):
 
 # ------------------------------- دوال تحليل الأعطال المتقدمة -------------------------------
 def flexible_date_parser(date_series):
-    """تحويل سلسلة من التواريخ بتنسيقات متعددة إلى datetime، مع تجاهل الأخطاء."""
     def parse_single(val):
         if pd.isna(val) or val == "":
             return pd.NaT
@@ -346,7 +346,6 @@ def flexible_date_parser(date_series):
     return date_series.apply(parse_single)
 
 def analyze_time_between_corrections(df, filter_text=None):
-    """تحليل المدة الزمنية بين الإجراءات التصحيحية المتكررة (حسب كلمة البحث)"""
     if df is None or df.empty:
         return pd.DataFrame()
     data = df.copy()
@@ -393,8 +392,6 @@ def failures_analysis_tab(all_sheets):
         return
     
     username = st.session_state.get("username")
-    
-    # الحصول على الأقسام المسموح للمستخدم بالوصول إليها (view)
     allowed_sections = get_allowed_sections(all_sheets, username, "view")
     
     if not allowed_sections:
@@ -498,6 +495,7 @@ def failures_analysis_tab(all_sheets):
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
+# ------------------------------- دوال المستخدمين والصلاحيات -------------------------------
 def download_users_from_github():
     try:
         response = requests.get(GITHUB_USERS_URL, timeout=10)
@@ -697,7 +695,6 @@ def has_section_permission(username, section_name, required_permission="view"):
     return required_permission in section_perms
 
 def get_allowed_sections(all_sheets, username, required_permission="view"):
-    """إرجاع قائمة الأقسام الحقيقية التي يسمح للمستخدم بالوصول إليها (بدون إضافة 'عام')"""
     allowed = []
     for sheet_name in all_sheets.keys():
         if sheet_name in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]:
@@ -760,6 +757,7 @@ def save_excel_locally(sheets_dict):
         if "temp_spare_parts_df" in st.session_state:
             sheets_dict[APP_CONFIG["SPARE_PARTS_SHEET"]] = st.session_state.temp_spare_parts_df
             del st.session_state.temp_spare_parts_df
+        # التأكد من وجود ورقة الصيانة الوقائية إذا كانت فارغة ولكن موجودة في sheets_dict
         if APP_CONFIG["MAINTENANCE_SHEET"] not in sheets_dict:
             sheets_dict[APP_CONFIG["MAINTENANCE_SHEET"]] = load_maintenance_tasks()
         with pd.ExcelWriter(APP_CONFIG["LOCAL_FILE"], engine="openpyxl") as writer:
@@ -1322,6 +1320,7 @@ def manage_machines(sheets_edit, sheet_name, unique_suffix=""):
             st.info("🔒 حذف الماكينات مقيد بصلاحيات المدير (admin). تواصل مع مدير النظام.")
     else:
         st.info("لا توجد ماكينات لحذفها")
+
 def add_new_event(sheets_edit, sheet_name):
     st.markdown(f"### 📝 إضافة حدث عطل جديد في قسم: {sheet_name}")
     df = sheets_edit[sheet_name]
@@ -1429,8 +1428,11 @@ def add_new_event(sheets_edit, sheet_name):
 
 # ------------------------------- دوال مساعدة للصيانة الوقائية -------------------------------
 def execute_maintenance_with_date(sheets_edit, equipment_name, task_name, execution_date, performed_by, used_spare_part="", used_quantity=1, image_url=None):
-    df = sheets_edit.get(APP_CONFIG["MAINTENANCE_SHEET"])
-    if df is None:
+    # التأكد من وجود ورقة الصيانة الوقائية
+    if APP_CONFIG["MAINTENANCE_SHEET"] not in sheets_edit:
+        sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
+    df = sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]]
+    if df.empty:
         return False, "لا توجد مهام صيانة"
     mask = (df["المعدة"] == equipment_name) & (df["اسم_البند"] == task_name)
     if not mask.any():
