@@ -392,12 +392,16 @@ def failures_analysis_tab(all_sheets):
         st.warning("لا توجد بيانات للتحليل")
         return
     
-    all_section_names = [name for name in all_sheets.keys() if name not in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]]
-    if not all_section_names:
-        st.warning("لا توجد أقسام متاحة للتحليل")
+    username = st.session_state.get("username")
+    
+    # الحصول على الأقسام المسموح للمستخدم بالوصول إليها (view)
+    allowed_sections = get_allowed_sections(all_sheets, username, "view")
+    
+    if not allowed_sections:
+        st.warning("لا توجد أقسام مسموح لك بالوصول إليها للتحليل")
         return
     
-    selected_section = st.selectbox("🏭 اختر القسم:", all_section_names, key="analysis_section")
+    selected_section = st.selectbox("🏭 اختر القسم:", allowed_sections, key="analysis_section")
     df = all_sheets[selected_section].copy()
     
     if "المعدة" not in df.columns:
