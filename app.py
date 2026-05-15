@@ -14,9 +14,9 @@ from github import Github, GithubException
 
 # ------------------------------- الإعدادات الثابتة -------------------------------
 APP_CONFIG = {
-    "APP_TITLE": "بيل يارن1- CMMS",
+    "APP_TITLE": "سكاي- CMMS",
     "APP_ICON": "🏭",
-    "REPO_NAME": "mahmedabdallh123/stations",
+    "REPO_NAME": "mahmedabdallh123/sky",
     "BRANCH": "main",
     "FILE_PATH": "l9.xlsx",
     "LOCAL_FILE": "l9.xlsx",
@@ -62,8 +62,8 @@ EQUIPMENT_CONFIG_FILE = "equipment_config.json"
 SUPPORT_CONFIG_FILE = "support_config.json"   # جديد: إعدادات الدعم الفني
 
 GITHUB_EXCEL_URL = f"https://github.com/{APP_CONFIG['REPO_NAME'].split('/')[0]}/{APP_CONFIG['REPO_NAME'].split('/')[1]}/raw/{APP_CONFIG['BRANCH']}/{APP_CONFIG['FILE_PATH']}"
-GITHUB_USERS_URL = "https://raw.githubusercontent.com/mahmedabdallh123/stations/refs/heads/main/users.json"
-GITHUB_REPO_USERS = "mahmedabdallh123/stations"
+GITHUB_USERS_URL = "https://raw.githubusercontent.com/mahmedabdallh123/sky/refs/heads/main/users.json"
+GITHUB_REPO_USERS = "mahmedabdallh123/sky"
 GITHUB_TOKEN = st.secrets.get("github", {}).get("token", None)
 GITHUB_AVAILABLE = GITHUB_TOKEN is not None
 ACTIVITY_LOG_FILE = "activity_log.json"
