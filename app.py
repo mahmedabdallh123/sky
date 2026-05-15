@@ -108,14 +108,11 @@ def load_all_sheets():
         return None
 
 def save_all_sheets(sheets_dict):
-    """حفظ جميع الأقسام (الأعطال) إلى Firestore - يحذف كل السجلات ثم يعيد إنشائها"""
     try:
-        # حذف جميع السجلات القديمة
         records_ref = db.collection('records')
         docs = records_ref.stream()
         for doc in docs:
             doc.reference.delete()
-        # إضافة السجلات الجديدة
         batch = db.batch()
         batch_count = 0
         for section_name, df in sheets_dict.items():
@@ -138,7 +135,6 @@ def save_all_sheets(sheets_dict):
     except Exception as e:
         st.error(f"خطأ في حفظ الأقسام: {e}")
         return False
-
 def load_spare_parts():
     try:
         spare_ref = db.collection('spare_parts')
