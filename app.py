@@ -2033,59 +2033,45 @@ if can_edit and len(tabs) > 3:
 # ------------------------------- تبويب الدعم الفني (الأخير) -------------------------------
 with tabs[-1]:
     st.header("📞 الدعم الفني")
-    st.markdown("### تم تنفيذ هذا السيستم بواسطه **م. محمد عبدالله** – رئيس قسم")
+    st.markdown("### تم تصميم وتنفيز هذا السيستم بواسطه **م.محمد عبدالله** – رئيس قسم التحضيرات والمحطات بمصنع بيل يارن 1")
     st.markdown("---")
     
+    # رابط يوتيوب ثابت حسب الطلب
+    YOUTUBE_LINK = "https://youtube.com/@cardtrutchler?si=bayhxhRXgCzWSpCl"
+    st.markdown(f"[📺 قناة اليوتيوب الرسمية]({YOUTUBE_LINK})")
+    st.caption(f"رابط القناة: {YOUTUBE_LINK}")
+    
+    # تحميل إعدادات الدعم الفني (لحفظ رابط الصورة فقط)
     support_config = load_support_config()
     current_image_url = support_config.get("image_url", "")
-    current_youtube_link = support_config.get("youtube_link", "")
     
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        st.subheader("🖼️ صورة المطور")
-        if current_image_url and current_image_url.strip():
-            try:
-                st.image(current_image_url, use_container_width=True)
-            except:
-                st.warning("⚠️ تعذر عرض الصورة المحفوظة")
-        else:
-            st.info("📷 لا توجد صورة مسجلة")
+    st.markdown("---")
+    st.subheader("🖼️ صورة المطور")
     
-    with col2:
-        st.subheader("🔗 روابط التواصل")
-        if current_youtube_link:
-            st.markdown(f"[📺 قناة اليوتيوب الرسمية]({current_youtube_link})")
-            st.caption(f"الرابط: {current_youtube_link}")
-        else:
-            st.info("لم يتم إضافة رابط يوتيوب بعد")
-        st.markdown("---")
-        st.markdown("📧 للتواصل والدعم: `01274424062`")
-    
-    if st.session_state.get("username") == "admin":
-        st.markdown("---")
-        st.subheader("⚙️ إعدادات الدعم الفني (للمدير فقط)")
-        with st.expander("✏️ تعديل الصورة والرابط"):
-            new_youtube = st.text_input("رابط صفحة اليوتيوب:", value=current_youtube_link, placeholder="https://www.youtube.com/...")
-            uploaded_support_img = st.file_uploader("رفع صورة جديدة للمطور:", type=APP_CONFIG["ALLOWED_IMAGE_TYPES"], key="support_img")
-            if st.button("💾 حفظ التغييرات"):
-                updated = False
-                new_image_url = current_image_url
-                if uploaded_support_img is not None:
-                    img_url = upload_image_to_github(uploaded_support_img, "support", "developer")
-                    if img_url:
-                        new_image_url = img_url
-                        st.success("✅ تم رفع الصورة بنجاح")
-                        updated = True
-                    else:
-                        st.error("❌ فشل رفع الصورة")
-                if new_youtube != current_youtube_link:
-                    updated = True
-                if updated:
-                    new_config = {"image_url": new_image_url, "youtube_link": new_youtube}
-                    save_support_config(new_config)
-                    st.success("✅ تم تحديث إعدادات الدعم الفني")
-                    st.rerun()
-                else:
-                    st.info("لم يتم إجراء أي تغييرات")
+    # إذا كانت الصورة موجودة مسبقاً -> عرضها فقط (بدون أي خيار رفع أو تغيير)
+    if current_image_url and current_image_url.strip():
+        try:
+            st.image(current_image_url, use_container_width=True)
+            st.caption("✅ تم رفع صورة المطور (لا يمكن تغييرها بعد الآن)")
+        except:
+            st.warning("⚠️ تعذر عرض الصورة المحفوظة")
     else:
-        st.caption("🔒 فقط المدير يمكنه تعديل الصورة والرابط")
+        # لا توجد صورة -> السماح بالرفع مرة واحدة فقط (للمدير فقط)
+        if st.session_state.get("username") == "admin":
+            st.info("📷 لم يتم رفع صورة المطور بعد. يمكنك رفعها الآن (مرة واحدة فقط، ولن يمكن تغييرها لاحقاً).")
+            uploaded_img = st.file_uploader("رفع صورة للمطور (jpg, png, ...)", type=APP_CONFIG["ALLOWED_IMAGE_TYPES"], key="support_img_upload_once")
+            if uploaded_img is not None:
+                with st.spinner("جاري رفع الصورة..."):
+                    image_url = upload_image_to_github(uploaded_img, "support", "developer_image_final")
+                    if image_url:
+                        support_config["image_url"] = image_url
+                        save_support_config(support_config)
+                        st.success("✅ تم رفع الصورة بنجاح! لن يظهر خيار الرفع مرة أخرى.")
+                        st.rerun()
+                    else:
+                        st.error("❌ فشل رفع الصورة، حاول مرة أخرى.")
+        else:
+            st.info("📷 لم يتم رفع صورة المطور بعد. سيتم رفعها بواسطة مدير النظام.")
+    
+    st.markdown("---")
+    st.markdown("📧 للتواصل والدعم: `01274424062`")
