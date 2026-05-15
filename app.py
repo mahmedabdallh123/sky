@@ -3,23 +3,19 @@ import pandas as pd
 import numpy as np
 import json
 import os
-import requests
-import shutil
 import re
 from datetime import datetime, timedelta
 import io
 import uuid
 from PIL import Image
-from github import Github, GithubException
+import firebase_admin
+from firebase_admin import credentials, firestore, storage
+from google.cloud.firestore import ArrayUnion
 
-# ------------------------------- الإعدادات الثابتة -------------------------------
+# ------------------------------- إعدادات ثابتة -------------------------------
 APP_CONFIG = {
     "APP_TITLE": "سكاي- CMMS",
     "APP_ICON": "🏭",
-    "REPO_NAME": "mahmedabdallh123/sky",
-    "BRANCH": "main",
-    "FILE_PATH": "l9.xlsx",
-    "LOCAL_FILE": "l9.xlsx",
     "MAX_ACTIVE_USERS": 5,
     "SESSION_DURATION_MINUTES": 60,
     "IMAGES_FOLDER": "event_images",
@@ -27,51 +23,30 @@ APP_CONFIG = {
     "MAX_IMAGE_SIZE_MB": 10,
     "DEFAULT_SHEET_COLUMNS": ["مده الاصلاح", "التاريخ", "المعدة", "الحدث/العطل", "الإجراء التصحيحي", "تم بواسطة", "قطع غيار مستخدمة", "نوع العطل", "قدرة الفني (حل/تفكير/مبادرة/قرار)", "الالتزام بتعليمات السلامة", "رابط الصورة"],
     "SPARE_PARTS_SHEET": "قطع_الغيار",
-    "SPARE_PARTS_COLUMNS": ["اسم القطعة", "المقاس", "قوه الشد", "الرصيد الموجود", "مدة التوريد", "ضرورية", "القسم", "رابط_الصورة"],
+    "SPARE_PARTS_COLUMNS": ["اسم القطعة", "المقاس", "قوه الشد", "الرصيد الموجود", "مدة التوريد", "ضرورية", "القسم", "رابط_الصورة", "حد_الإنذار"],
     "MAINTENANCE_SHEET": "صيانة_وقائية",
     "MAINTENANCE_COLUMNS": ["المعدة", "نوع_الصيانة", "اسم_البند", "الفترة_بالأيام", "آخر_تنفيذ", "التاريخ_التالي", "ملاحظات", "قطع_غيار_مستخدمة_افتراضية", "رابط_الصورة"],
     "GENERAL_SECTION": "عام"
 }
 
-# ------------------------------- إعداد الصفحة -------------------------------
-st.set_page_config(page_title=APP_CONFIG["APP_TITLE"], layout="wide")
+# ------------------------------- تهيئة Firebase -------------------------------
+def init_firebase():
+    if not firebase_admin._apps:
+        try:
+            cred = credentials.Certificate(dict(st.secrets["firebase"]))
+            firebase_admin.initialize_app(cred, {
+                'storageBucket': st.secrets["firebase"]["storage_bucket"]
+            })
+        except Exception as e:
+            st.error(f"❌ فشل تهيئة Firebase: {e}")
+            st.stop()
+    return firestore.client()
 
-# ------------------------------- استيرادات إضافية مع معالجة الأخطاء -------------------------------
-try:
-    import plotly.express as px
-    import plotly.graph_objects as go
-    PLOTLY_AVAILABLE = True
-except ImportError:
-    PLOTLY_AVAILABLE = False
-    try:
-        import matplotlib.pyplot as plt
-        import matplotlib.dates as mdates
-        plt.rcParams['font.family'] = 'Arial'
-        MATPLOTLIB_AVAILABLE = True
-    except ImportError:
-        MATPLOTLIB_AVAILABLE = False
+db = init_firebase()
+bucket = storage.bucket()
 
-# ------------------------------- ثوابت إضافية -------------------------------
-USERS_FILE = "users.json"
-STATE_FILE = "state.json"
-SESSION_DURATION = timedelta(minutes=APP_CONFIG["SESSION_DURATION_MINUTES"])
-MAX_ACTIVE_USERS = APP_CONFIG["MAX_ACTIVE_USERS"]
-IMAGES_FOLDER = APP_CONFIG["IMAGES_FOLDER"]
-EQUIPMENT_CONFIG_FILE = "equipment_config.json"
-SUPPORT_CONFIG_FILE = "support_config.json"
-
-GITHUB_EXCEL_URL = f"https://github.com/{APP_CONFIG['REPO_NAME'].split('/')[0]}/{APP_CONFIG['REPO_NAME'].split('/')[1]}/raw/{APP_CONFIG['BRANCH']}/{APP_CONFIG['FILE_PATH']}"
-GITHUB_USERS_URL = "https://raw.githubusercontent.com/mahmedabdallh123/sky/refs/heads/main/users.json"
-GITHUB_REPO_USERS = "mahmedabdallh123/sky"
-GITHUB_TOKEN = st.secrets.get("github", {}).get("token", None)
-GITHUB_AVAILABLE = GITHUB_TOKEN is not None
-ACTIVITY_LOG_FILE = "activity_log.json"
-
-# ------------------------------- دوال رفع الصور -------------------------------
-def upload_image_to_github(image_file, entity_type, entity_id, custom_filename=None):
-    if not GITHUB_AVAILABLE:
-        st.error("❌ GitHub token غير متوفر، لا يمكن رفع الصور")
-        return None
+# ------------------------------- دوال مساعدة للصور -------------------------------
+def upload_image_to_firebase(image_file, entity_type, entity_id, custom_filename=None):
     try:
         img = Image.open(image_file)
         if img.mode in ('RGBA', 'LA', 'P'):
@@ -84,18 +59,12 @@ def upload_image_to_github(image_file, entity_type, entity_id, custom_filename=N
         else:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"{entity_type}_{entity_id}_{timestamp}.jpg"
-        repo_path = f"{IMAGES_FOLDER}/{entity_type}/{filename}"
-        g = Github(GITHUB_TOKEN)
-        repo = g.get_repo(APP_CONFIG["REPO_NAME"])
-        try:
-            repo.get_contents(f"{IMAGES_FOLDER}/{entity_type}/", ref=APP_CONFIG["BRANCH"])
-        except GithubException:
-            repo.create_file(f"{IMAGES_FOLDER}/{entity_type}/.gitkeep", f"Create folder for {entity_type} images", "", branch=APP_CONFIG["BRANCH"])
-        content = buffer.getvalue()
-        result = repo.create_file(path=repo_path, message=f"Add image for {entity_type} {entity_id}", content=content, branch=APP_CONFIG["BRANCH"])
-        return f"https://raw.githubusercontent.com/{APP_CONFIG['REPO_NAME']}/{APP_CONFIG['BRANCH']}/{repo_path}"
+        blob = bucket.blob(f"{APP_CONFIG['IMAGES_FOLDER']}/{entity_type}/{filename}")
+        blob.upload_from_file(buffer, content_type='image/jpeg')
+        blob.make_public()
+        return blob.public_url
     except Exception as e:
-        st.error(f"❌ خطأ في معالجة الصورة: {e}")
+        st.error(f"❌ خطأ في رفع الصورة: {e}")
         return None
 
 def get_image_component(image_url, caption=""):
@@ -107,64 +76,377 @@ def get_image_component(image_url, caption=""):
         st.warning(f"⚠️ تعذر عرض الصورة: {image_url}")
         return None
 
+# ------------------------------- دوال بيانات Firebase -------------------------------
+def load_all_sheets():
+    """تحميل جميع الأقسام (الأعطال) من Firestore وإرجاع قاموس {section_name: DataFrame}"""
+    try:
+        records_ref = db.collection('records')
+        docs = records_ref.stream()
+        data = {}
+        for doc in docs:
+            record = doc.to_dict()
+            section = record.get('section_name')
+            if not section:
+                continue
+            if section not in data:
+                data[section] = []
+            data[section].append(record.get('data', {}))
+        sheets = {}
+        for section, rows in data.items():
+            if rows:
+                df = pd.DataFrame(rows)
+                # التأكد من وجود كل الأعمدة الافتراضية
+                for col in APP_CONFIG["DEFAULT_SHEET_COLUMNS"]:
+                    if col not in df.columns:
+                        df[col] = ""
+                sheets[section] = df
+            else:
+                sheets[section] = pd.DataFrame(columns=APP_CONFIG["DEFAULT_SHEET_COLUMNS"])
+        return sheets
+    except Exception as e:
+        st.error(f"خطأ في تحميل الأقسام: {e}")
+        return None
+
+def save_all_sheets(sheets_dict):
+    """حفظ جميع الأقسام (الأعطال) إلى Firestore - يحذف كل السجلات ثم يعيد إنشائها"""
+    try:
+        # حذف جميع السجلات القديمة
+        records_ref = db.collection('records')
+        docs = records_ref.stream()
+        for doc in docs:
+            doc.reference.delete()
+        # إضافة السجلات الجديدة
+        batch = db.batch()
+        batch_count = 0
+        for section_name, df in sheets_dict.items():
+            if section_name in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]:
+                continue
+            for _, row in df.iterrows():
+                doc_ref = records_ref.document()
+                batch.set(doc_ref, {
+                    'section_name': section_name,
+                    'data': row.to_dict()
+                })
+                batch_count += 1
+                if batch_count >= 500:
+                    batch.commit()
+                    batch = db.batch()
+                    batch_count = 0
+        if batch_count > 0:
+            batch.commit()
+        return True
+    except Exception as e:
+        st.error(f"خطأ في حفظ الأقسام: {e}")
+        return False
+
+def load_spare_parts():
+    try:
+        spare_ref = db.collection('spare_parts')
+        docs = spare_ref.stream()
+        rows = []
+        for doc in docs:
+            rows.append(doc.to_dict())
+        if rows:
+            df = pd.DataFrame(rows)
+            for col in APP_CONFIG["SPARE_PARTS_COLUMNS"]:
+                if col not in df.columns:
+                    df[col] = ""
+            df.fillna("", inplace=True)
+            df["الرصيد الموجود"] = pd.to_numeric(df["الرصيد الموجود"], errors='coerce').fillna(0)
+            if "حد_الإنذار" not in df.columns:
+                df["حد_الإنذار"] = 1
+            else:
+                df["حد_الإنذار"] = pd.to_numeric(df["حد_الإنذار"], errors='coerce').fillna(1)
+            return df
+        else:
+            return pd.DataFrame(columns=APP_CONFIG["SPARE_PARTS_COLUMNS"])
+    except Exception as e:
+        st.error(f"خطأ في تحميل قطع الغيار: {e}")
+        return pd.DataFrame(columns=APP_CONFIG["SPARE_PARTS_COLUMNS"])
+
+def save_spare_parts(df):
+    try:
+        spare_ref = db.collection('spare_parts')
+        # حذف الكل
+        docs = spare_ref.stream()
+        for doc in docs:
+            doc.reference.delete()
+        # إضافة الجديد
+        batch = db.batch()
+        count = 0
+        for _, row in df.iterrows():
+            doc_ref = spare_ref.document()
+            batch.set(doc_ref, row.to_dict())
+            count += 1
+            if count >= 500:
+                batch.commit()
+                batch = db.batch()
+                count = 0
+        if count > 0:
+            batch.commit()
+        return True
+    except Exception as e:
+        st.error(f"خطأ في حفظ قطع الغيار: {e}")
+        return False
+
+def load_maintenance_tasks():
+    try:
+        maint_ref = db.collection('maintenance_tasks')
+        docs = maint_ref.stream()
+        rows = []
+        for doc in docs:
+            rows.append(doc.to_dict())
+        if rows:
+            df = pd.DataFrame(rows)
+            for col in APP_CONFIG["MAINTENANCE_COLUMNS"]:
+                if col not in df.columns:
+                    df[col] = ""
+            df.fillna("", inplace=True)
+            if "آخر_تنفيذ" in df.columns:
+                df["آخر_تنفيذ"] = pd.to_datetime(df["آخر_تنفيذ"], errors='coerce')
+            if "التاريخ_التالي" in df.columns:
+                df["التاريخ_التالي"] = pd.to_datetime(df["التاريخ_التالي"], errors='coerce')
+            if "الفترة_بالأيام" in df.columns:
+                df["الفترة_بالأيام"] = pd.to_numeric(df["الفترة_بالأيام"], errors='coerce').fillna(0)
+            return df
+        else:
+            return pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
+    except Exception as e:
+        st.error(f"خطأ في تحميل مهام الصيانة: {e}")
+        return pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
+
+def save_maintenance_tasks(df):
+    try:
+        maint_ref = db.collection('maintenance_tasks')
+        docs = maint_ref.stream()
+        for doc in docs:
+            doc.reference.delete()
+        batch = db.batch()
+        count = 0
+        for _, row in df.iterrows():
+            doc_ref = maint_ref.document()
+            # تحويل Timestamp إلى string أو تركها
+            row_dict = row.to_dict()
+            if 'آخر_تنفيذ' in row_dict and pd.notna(row_dict['آخر_تنفيذ']):
+                row_dict['آخر_تنفيذ'] = row_dict['آخر_تنفيذ'].isoformat()
+            if 'التاريخ_التالي' in row_dict and pd.notna(row_dict['التاريخ_التالي']):
+                row_dict['التاريخ_التالي'] = row_dict['التاريخ_التالي'].isoformat()
+            batch.set(doc_ref, row_dict)
+            count += 1
+            if count >= 500:
+                batch.commit()
+                batch = db.batch()
+                count = 0
+        if count > 0:
+            batch.commit()
+        return True
+    except Exception as e:
+        st.error(f"خطأ في حفظ مهام الصيانة: {e}")
+        return False
+
+# ------------------------------- دوال المستخدمين والصلاحيات -------------------------------
+def load_users():
+    try:
+        users_ref = db.collection('users')
+        docs = users_ref.stream()
+        users = {}
+        for doc in docs:
+            user_data = doc.to_dict()
+            username = doc.id
+            users[username] = user_data
+        if not users:
+            # مستخدم افتراضي
+            default = {
+                "admin": {"password": "1234", "role": "admin", "permissions": {"all_sections": True}, "sections_permissions": {}}
+            }
+            save_users(default)
+            return default
+        return users
+    except Exception as e:
+        st.error(f"خطأ في تحميل المستخدمين: {e}")
+        return {"admin": {"password": "1234", "role": "admin", "permissions": {"all_sections": True}, "sections_permissions": {}}}
+
+def save_users(users_dict):
+    try:
+        users_ref = db.collection('users')
+        docs = users_ref.stream()
+        for doc in docs:
+            doc.reference.delete()
+        batch = db.batch()
+        count = 0
+        for username, data in users_dict.items():
+            doc_ref = users_ref.document(username)
+            batch.set(doc_ref, data)
+            count += 1
+            if count >= 500:
+                batch.commit()
+                batch = db.batch()
+                count = 0
+        if count > 0:
+            batch.commit()
+        return True
+    except Exception as e:
+        st.error(f"خطأ في حفظ المستخدمين: {e}")
+        return False
+
+def log_activity(action_type, details, username=None):
+    if username is None:
+        username = st.session_state.get("username", "غير معروف")
+    log_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "username": username,
+        "action_type": action_type,
+        "details": details
+    }
+    try:
+        db.collection('activity_log').add(log_entry)
+        # حذف أقدم السجلات إذا تجاوزت 100
+        logs_ref = db.collection('activity_log').order_by('timestamp').limit(100)
+        docs = logs_ref.stream()
+        count = 0
+        for doc in docs:
+            count += 1
+        if count > 100:
+            # حذف أقدم 10
+            old_logs = db.collection('activity_log').order_by('timestamp').limit(10).stream()
+            for doc in old_logs:
+                doc.reference.delete()
+    except Exception as e:
+        st.error(f"خطأ في تسجيل النشاط: {e}")
+
+def load_activity_log():
+    try:
+        logs_ref = db.collection('activity_log').order_by('timestamp', direction=firestore.Query.DESCENDING).limit(100)
+        docs = logs_ref.stream()
+        logs = []
+        for doc in docs:
+            logs.append(doc.to_dict())
+        return logs
+    except Exception as e:
+        st.error(f"خطأ في تحميل سجل النشاطات: {e}")
+        return []
+
 # ------------------------------- دوال إعدادات الدعم الفني -------------------------------
 def load_support_config():
-    default_config = {"image_url": "", "youtube_link": ""}
-    if GITHUB_AVAILABLE:
-        try:
-            g = Github(GITHUB_TOKEN)
-            repo = g.get_repo(APP_CONFIG["REPO_NAME"])
-            contents = repo.get_contents(SUPPORT_CONFIG_FILE, ref=APP_CONFIG["BRANCH"])
-            import base64
-            content = base64.b64decode(contents.content).decode('utf-8')
-            config = json.loads(content)
-            return config
-        except:
-            pass
-    if os.path.exists(SUPPORT_CONFIG_FILE):
-        try:
-            with open(SUPPORT_CONFIG_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except:
-            return default_config
-    return default_config
+    try:
+        doc_ref = db.collection('config').document('support_config')
+        doc = doc_ref.get()
+        if doc.exists:
+            return doc.to_dict()
+        else:
+            default = {"image_url": "", "youtube_link": "https://youtube.com/@cardtrutchler?si=bayhxhRXgCzWSpCl"}
+            doc_ref.set(default)
+            return default
+    except Exception as e:
+        st.error(f"خطأ في تحميل إعدادات الدعم: {e}")
+        return {"image_url": "", "youtube_link": ""}
 
 def save_support_config(config):
-    config_str = json.dumps(config, indent=2, ensure_ascii=False)
-    if GITHUB_AVAILABLE:
-        try:
-            g = Github(GITHUB_TOKEN)
-            repo = g.get_repo(APP_CONFIG["REPO_NAME"])
-            try:
-                contents = repo.get_contents(SUPPORT_CONFIG_FILE, ref=APP_CONFIG["BRANCH"])
-                repo.update_file(SUPPORT_CONFIG_FILE, "تحديث إعدادات الدعم الفني", config_str, contents.sha, branch=APP_CONFIG["BRANCH"])
-            except:
-                repo.create_file(SUPPORT_CONFIG_FILE, "إنشاء إعدادات الدعم الفني", config_str, branch=APP_CONFIG["BRANCH"])
-        except:
-            pass
-    with open(SUPPORT_CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(config, f, indent=2, ensure_ascii=False)
-
-# ------------------------------- دوال قطع الغيار -------------------------------
-def load_spare_parts():
-    if not os.path.exists(APP_CONFIG["LOCAL_FILE"]):
-        return pd.DataFrame(columns=APP_CONFIG["SPARE_PARTS_COLUMNS"])
     try:
-        df = pd.read_excel(APP_CONFIG["LOCAL_FILE"], sheet_name=APP_CONFIG["SPARE_PARTS_SHEET"])
-        df.columns = df.columns.astype(str).str.strip()
-        for col in APP_CONFIG["SPARE_PARTS_COLUMNS"]:
-            if col not in df.columns:
-                df[col] = ""
-        df = df.fillna("")
-        df["الرصيد الموجود"] = pd.to_numeric(df["الرصيد الموجود"], errors='coerce').fillna(0)
-        if "حد_الإنذار" not in df.columns:
-            df["حد_الإنذار"] = 1
-        else:
-            df["حد_الإنذار"] = pd.to_numeric(df["حد_الإنذار"], errors='coerce').fillna(1)
-        return df
-    except Exception:
-        return pd.DataFrame(columns=APP_CONFIG["SPARE_PARTS_COLUMNS"])
+        db.collection('config').document('support_config').set(config)
+        return True
+    except Exception as e:
+        st.error(f"خطأ في حفظ إعدادات الدعم: {e}")
+        return False
 
+# ------------------------------- دوال الصيانة الوقائية (معدلة) -------------------------------
+def get_tasks_for_equipment(equipment_name):
+    df = load_maintenance_tasks()
+    if df.empty:
+        return df
+    return df[df["المعدة"] == equipment_name]
+
+def add_maintenance_task(sheets_edit, equipment, task_name, period_hours, start_date=None, notes="", default_spare="", image_url=None):
+    # sheets_edit غير مستخدم هنا لأننا سنحفظ مباشرة في Firebase
+    df = load_maintenance_tasks()
+    if start_date is None:
+        start_date = datetime.now().date()
+    period_days = period_hours / 24.0
+    next_date = start_date + timedelta(days=period_days)
+    new_row = pd.DataFrame([{
+        "المعدة": equipment, "نوع_الصيانة": f"{period_hours} ساعة", "اسم_البند": task_name,
+        "الفترة_بالأيام": period_days, "آخر_تنفيذ": pd.NaT, "التاريخ_التالي": next_date,
+        "ملاحظات": notes, "قطع_غيار_مستخدمة_افتراضية": default_spare, "رابط_الصورة": image_url or ""
+    }])
+    new_df = pd.concat([df, new_row], ignore_index=True)
+    save_maintenance_tasks(new_df)
+    log_activity("add_maintenance_task", f"تم إضافة بند صيانة '{task_name}' للماكينة {equipment} (فترة {period_hours} ساعة)")
+    return sheets_edit  # للتوافق مع الكود القديم
+
+def get_upcoming_maintenance(days_ahead=3):
+    df = load_maintenance_tasks()
+    if df.empty:
+        return pd.DataFrame(), pd.DataFrame()
+    today = datetime.now().date()
+    # تحويل الأعمدة إلى تاريخ
+    df["التاريخ_التالي"] = pd.to_datetime(df["التاريخ_التالي"], errors='coerce')
+    df["آخر_تنفيذ"] = pd.to_datetime(df["آخر_تنفيذ"], errors='coerce')
+    overdue = df[df["التاريخ_التالي"] < pd.Timestamp(today)]
+    upcoming = df[(df["التاريخ_التالي"] >= pd.Timestamp(today)) & (df["التاريخ_التالي"] <= pd.Timestamp(today + timedelta(days=days_ahead)))]
+    return overdue, upcoming
+
+def execute_maintenance_with_date(sheets_edit, equipment_name, task_name, execution_date, performed_by, used_spare_part="", used_quantity=1, image_url=None):
+    df = load_maintenance_tasks()
+    if df.empty:
+        return False, "لا توجد مهام صيانة"
+    mask = (df["المعدة"] == equipment_name) & (df["اسم_البند"] == task_name)
+    if not mask.any():
+        return False, f"المهمة '{task_name}' غير موجودة للمعدة '{equipment_name}'"
+    idx = df[mask].index[0]
+    period_days = df.loc[idx, "الفترة_بالأيام"]
+    df.loc[idx, "آخر_تنفيذ"] = pd.to_datetime(execution_date)
+    next_date = execution_date + timedelta(days=period_days)
+    df.loc[idx, "التاريخ_التالي"] = next_date
+    old_notes = df.loc[idx, "ملاحظات"] if pd.notna(df.loc[idx, "ملاحظات"]) else ""
+    new_entry = f"{execution_date.strftime('%Y-%m-%d')} | تم بواسطة: {performed_by}"
+    warning_msg = ""
+    if used_spare_part and used_quantity > 0:
+        success, msg, new_qty = consume_spare_part(used_spare_part, used_quantity)
+        if not success:
+            return False, f"فشل خصم قطعة الغيار: {msg}"
+        new_entry += f" | استخدمت {used_spare_part} كمية {used_quantity} - {msg}"
+        critical_parts = get_critical_spare_parts()
+        for cp in critical_parts:
+            if cp["اسم القطعة"] == used_spare_part:
+                warning_msg = f"⚠️ **تحذير:** القطعة '{used_spare_part}' ضرورية وأصبح رصيدها {new_qty} (أقل من 1). يرجى إعادة التوريد."
+                break
+    if image_url:
+        new_entry += f" | صورة: {image_url}"
+    df.loc[idx, "ملاحظات"] = (old_notes + "\n" + new_entry).strip()
+    save_maintenance_tasks(df)
+    log_activity("execute_maintenance", f"تم تنفيذ صيانة '{task_name}' للماكينة {equipment_name} بواسطة {performed_by}")
+    result_msg = f"تم تنفيذ الصيانة '{task_name}' بتاريخ {execution_date.strftime('%Y-%m-%d')} بواسطة {performed_by}. التاريخ التالي: {next_date.strftime('%Y-%m-%d')}" + (f" {warning_msg}" if warning_msg else "")
+    return True, result_msg
+
+def add_maintenance_as_event(sheets_edit, equipment_name, task_name, execution_date, performed_by, used_spare_part="", used_quantity=1, image_url=None):
+    # نضيف حدث عطل في القسم المناسب
+    all_sheets = load_all_sheets()
+    target_sheet = None
+    target_df = None
+    for sheet_name, df in all_sheets.items():
+        if equipment_name in get_equipment_list_from_sheet(df):
+            target_sheet = sheet_name
+            target_df = df
+            break
+    if target_sheet is None:
+        return False, f"لم يتم العثور على قسم يحتوي على المعدة '{equipment_name}'"
+    spare_part_used = f"{used_spare_part} (كمية {used_quantity})" if used_spare_part else ""
+    new_row = {
+        "مده الاصلاح": 0, "التاريخ": execution_date.strftime("%Y-%m-%d"), "المعدة": equipment_name,
+        "الحدث/العطل": f"صيانة وقائية: {task_name}", "الإجراء التصحيحي": f"تم تنفيذ الصيانة الدورية '{task_name}' بواسطة {performed_by}",
+        "تم بواسطة": performed_by, "قطع غيار مستخدمة": spare_part_used, "نوع العطل": "صيانة وقائية",
+        "قدرة الفني (حل/تفكير/مبادرة/قرار)": 5, "الالتزام بتعليمات السلامة": "ملتزم بالكامل", "رابط الصورة": image_url or ""
+    }
+    for col in target_df.columns:
+        if col not in new_row:
+            new_row[col] = ""
+    new_row_df = pd.DataFrame([new_row])
+    target_df = pd.concat([target_df, new_row_df], ignore_index=True)
+    all_sheets[target_sheet] = target_df
+    save_all_sheets(all_sheets)
+    return True, f"تم تسجيل الصيانة كحدث في قسم '{target_sheet}' بواسطة {performed_by}"
+
+# ------------------------------- دوال قطع الغيار المستخدمة -------------------------------
 def get_spare_parts_for_section(section_name):
     df = load_spare_parts()
     if df.empty:
@@ -184,9 +466,10 @@ def consume_spare_part(part_name, quantity=1):
         return False, f"الرصيد غير كافٍ (الموجود: {current_qty}, المطلوب: {quantity})", current_qty
     new_qty = current_qty - quantity
     df.loc[mask, "الرصيد الموجود"] = new_qty
-    if "temp_spare_parts_df" not in st.session_state:
-        st.session_state.temp_spare_parts_df = df
-    else:
+    # حفظ التغيير مباشرة
+    save_spare_parts(df)
+    # تحديث session state إذا وجد
+    if "temp_spare_parts_df" in st.session_state:
         st.session_state.temp_spare_parts_df = df
     return True, f"تم خصم {quantity} من '{part_name}'، الرصيد الجديد: {new_qty}", new_qty
 
@@ -208,112 +491,7 @@ def get_critical_spare_parts():
     result = critical[["اسم القطعة", "القسم", "الرصيد الموجود", "حد_الإنذار"]].to_dict('records')
     return result
 
-# ------------------------------- دوال سجل النشاطات -------------------------------
-def log_activity(action_type, details, username=None):
-    if username is None:
-        username = st.session_state.get("username", "غير معروف")
-    log_entry = {"timestamp": datetime.now().isoformat(), "username": username, "action_type": action_type, "details": details}
-    log = []
-    if os.path.exists(ACTIVITY_LOG_FILE):
-        try:
-            with open(ACTIVITY_LOG_FILE, "r", encoding="utf-8") as f:
-                log = json.load(f)
-        except:
-            log = []
-    log.append(log_entry)
-    if len(log) > 100:
-        log = log[-100:]
-    with open(ACTIVITY_LOG_FILE, "w", encoding="utf-8") as f:
-        json.dump(log, f, indent=2, ensure_ascii=False)
-    if GITHUB_AVAILABLE:
-        try:
-            g = Github(GITHUB_TOKEN)
-            repo = g.get_repo(APP_CONFIG["REPO_NAME"])
-            content = json.dumps(log, indent=2, ensure_ascii=False)
-            try:
-                contents = repo.get_contents(ACTIVITY_LOG_FILE, ref=APP_CONFIG["BRANCH"])
-                repo.update_file(ACTIVITY_LOG_FILE, "تحديث سجل النشاطات", content, contents.sha, branch=APP_CONFIG["BRANCH"])
-            except:
-                repo.create_file(ACTIVITY_LOG_FILE, "إنشاء سجل النشاطات", content, branch=APP_CONFIG["BRANCH"])
-        except:
-            pass
-
-def load_activity_log():
-    if GITHUB_AVAILABLE:
-        try:
-            g = Github(GITHUB_TOKEN)
-            repo = g.get_repo(APP_CONFIG["REPO_NAME"])
-            contents = repo.get_contents(ACTIVITY_LOG_FILE, ref=APP_CONFIG["BRANCH"])
-            import base64
-            content = base64.b64decode(contents.content).decode('utf-8')
-            return json.loads(content)
-        except:
-            pass
-    if os.path.exists(ACTIVITY_LOG_FILE):
-        with open(ACTIVITY_LOG_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
-
-# ------------------------------- دوال الصيانة الوقائية -------------------------------
-def load_maintenance_tasks():
-    """تحميل مهام الصيانة الوقائية مع معالجة خطأ عدم وجود الورقة"""
-    if not os.path.exists(APP_CONFIG["LOCAL_FILE"]):
-        return pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
-    try:
-        # محاولة قراءة الورقة المحددة
-        df = pd.read_excel(APP_CONFIG["LOCAL_FILE"], sheet_name=APP_CONFIG["MAINTENANCE_SHEET"])
-        df.columns = df.columns.astype(str).str.strip()
-        for col in APP_CONFIG["MAINTENANCE_COLUMNS"]:
-            if col not in df.columns:
-                df[col] = ""
-        df = df.fillna("")
-        if "آخر_تنفيذ" in df.columns:
-            df["آخر_تنفيذ"] = pd.to_datetime(df["آخر_تنفيذ"], errors='coerce')
-        if "التاريخ_التالي" in df.columns:
-            df["التاريخ_التالي"] = pd.to_datetime(df["التاريخ_التالي"], errors='coerce')
-        if "الفترة_بالأيام" in df.columns:
-            df["الفترة_بالأيام"] = pd.to_numeric(df["الفترة_بالأيام"], errors='coerce').fillna(0)
-        return df
-    except Exception as e:
-        # إذا لم توجد الورقة، نرجع DataFrame فارغ بدون رسالة خطأ
-        # (الخطأ يحدث فقط عند محاولة القراءة، نتعامل معه بهدوء)
-        return pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
-
-def get_tasks_for_equipment(equipment_name):
-    df = load_maintenance_tasks()
-    if df.empty:
-        return df
-    return df[df["المعدة"] == equipment_name]
-
-def add_maintenance_task(sheets_edit, equipment, task_name, period_hours, start_date=None, notes="", default_spare="", image_url=None):
-    # التأكد من وجود الورقة في sheets_edit
-    if APP_CONFIG["MAINTENANCE_SHEET"] not in sheets_edit:
-        sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
-    df = sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]]
-    if start_date is None:
-        start_date = datetime.now().date()
-    period_days = period_hours / 24.0
-    next_date = start_date + timedelta(days=period_days)
-    new_row = pd.DataFrame([{
-        "المعدة": equipment, "نوع_الصيانة": f"{period_hours} ساعة", "اسم_البند": task_name,
-        "الفترة_بالأيام": period_days, "آخر_تنفيذ": pd.NaT, "التاريخ_التالي": next_date,
-        "ملاحظات": notes, "قطع_غيار_مستخدمة_افتراضية": default_spare, "رابط_الصورة": image_url or ""
-    }])
-    new_df = pd.concat([df, new_row], ignore_index=True)
-    sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = new_df
-    log_activity("add_maintenance_task", f"تم إضافة بند صيانة '{task_name}' للماكينة {equipment} (فترة {period_hours} ساعة)")
-    return sheets_edit
-
-def get_upcoming_maintenance(days_ahead=3):
-    df = load_maintenance_tasks()
-    if df.empty:
-        return pd.DataFrame(), pd.DataFrame()
-    today = datetime.now().date()
-    overdue = df[df["التاريخ_التالي"] < pd.Timestamp(today)]
-    upcoming = df[(df["التاريخ_التالي"] >= pd.Timestamp(today)) & (df["التاريخ_التالي"] <= pd.Timestamp(today + timedelta(days=days_ahead)))]
-    return overdue, upcoming
-
-# ------------------------------- دوال تحليل الأعطال المتقدمة -------------------------------
+# ------------------------------- دوال تحليل الأعطال المتقدمة (نفس السابق) -------------------------------
 def flexible_date_parser(date_series):
     def parse_single(val):
         if pd.isna(val) or val == "":
@@ -495,70 +673,44 @@ def failures_analysis_tab(all_sheets):
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-# ------------------------------- دوال المستخدمين والصلاحيات -------------------------------
-def download_users_from_github():
-    try:
-        response = requests.get(GITHUB_USERS_URL, timeout=10)
-        response.raise_for_status()
-        users_data = response.json()
-        for username, user_info in users_data.items():
-            if "permissions" in user_info and isinstance(user_info["permissions"], list):
-                if "all" in user_info["permissions"]:
-                    user_info["permissions"] = {"all_sections": True}
-                else:
-                    user_info["permissions"] = {"all_sections": False}
-                user_info["sections_permissions"] = {}
-            elif "permissions" not in user_info:
-                user_info["permissions"] = {"all_sections": False}
-                user_info["sections_permissions"] = {}
-        with open(USERS_FILE, "w", encoding="utf-8") as f:
-            json.dump(users_data, f, indent=4, ensure_ascii=False)
-        return users_data
-    except Exception as e:
-        st.warning(f"لم نتمكن من تحميل users.json من GitHub: {e}")
-        if os.path.exists(USERS_FILE):
-            with open(USERS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        return None
+# ------------------------------- دوال المستخدمين والصلاحيات (مدمجة) -------------------------------
+def get_user_permissions(username):
+    users = load_users()
+    if username not in users:
+        return {"all_sections": False, "sections_permissions": {}}
+    user_data = users[username]
+    if "permissions" in user_data and isinstance(user_data["permissions"], dict):
+        perms = user_data["permissions"]
+    else:
+        perms = {"all_sections": False}
+    if "sections_permissions" not in user_data:
+        user_data["sections_permissions"] = {}
+    return {"all_sections": perms.get("all_sections", False), "sections_permissions": user_data.get("sections_permissions", {})}
 
-def upload_users_to_github(users_data):
-    try:
-        token = st.secrets.get("github", {}).get("token", None)
-        if not token:
-            st.error("❌ لم يتم العثور على GitHub token")
-            return False
-        g = Github(token)
-        repo = g.get_repo(GITHUB_REPO_USERS)
-        users_json = json.dumps(users_data, indent=4, ensure_ascii=False, sort_keys=True)
-        try:
-            contents = repo.get_contents("users.json", ref="main")
-            repo.update_file(path="users.json", message="تحديث ملف المستخدمين", content=users_json, sha=contents.sha, branch="main")
-            return True
-        except:
-            repo.create_file(path="users.json", message="إنشاء ملف المستخدمين", content=users_json, branch="main")
-            return True
-    except Exception as e:
-        st.error(f"❌ فشل رفع المستخدمين: {e}")
+def has_section_permission(username, section_name, required_permission="view"):
+    if username == "admin":
+        return True
+    permissions = get_user_permissions(username)
+    if not permissions:
         return False
+    if permissions.get("all_sections", False):
+        return True
+    section_perms = permissions.get("sections_permissions", {}).get(section_name, [])
+    return required_permission in section_perms
 
-def load_users():
-    try:
-        users_data = download_users_from_github()
-        if not users_data or "admin" not in users_data:
-            if os.path.exists(USERS_FILE):
-                with open(USERS_FILE, "r", encoding="utf-8") as f:
-                    local_users = json.load(f)
-                    if "admin" in local_users:
-                        return local_users
-            default_users = {
-                "admin": {"password": "1234", "role": "admin", "permissions": {"all_sections": True}, "sections_permissions": {}},
-                "مدير_صيانة": {"password": "12345", "role": "admin", "permissions": {"all_sections": True}, "sections_permissions": {}}
-            }
-            return default_users
-        return users_data
-    except Exception as e:
-        st.error(f"خطأ في تحميل المستخدمين: {e}")
-        return {"admin": {"password": "1234", "role": "admin", "permissions": {"all_sections": True}, "sections_permissions": {}}}
+def get_allowed_sections(all_sheets, username, required_permission="view"):
+    allowed = []
+    for sheet_name in all_sheets.keys():
+        if sheet_name in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]:
+            continue
+        if has_section_permission(username, sheet_name, required_permission):
+            allowed.append(sheet_name)
+    return allowed
+
+# ------------------------------- دوال إدارة الجلسات -------------------------------
+STATE_FILE = "state.json"  # لا يزال نستخدم ملف محلي للجلسات (أو يمكن نقلها إلى Firebase)
+SESSION_DURATION = timedelta(minutes=APP_CONFIG["SESSION_DURATION_MINUTES"])
+MAX_ACTIVE_USERS = APP_CONFIG["MAX_ACTIVE_USERS"]
 
 def load_state():
     if not os.path.exists(STATE_FILE):
@@ -664,159 +816,7 @@ def login_ui():
             logout_action()
         return True
 
-# ------------------------------- دوال الصلاحيات -------------------------------
-def get_user_permissions(username):
-    users = load_users()
-    if username not in users:
-        return {"all_sections": False, "sections_permissions": {}}
-    user_data = users[username]
-    if "permissions" in user_data and isinstance(user_data["permissions"], dict):
-        perms = user_data["permissions"]
-    elif "permissions" in user_data and isinstance(user_data["permissions"], list):
-        if "all" in user_data["permissions"]:
-            perms = {"all_sections": True}
-        else:
-            perms = {"all_sections": False}
-    else:
-        perms = {"all_sections": False}
-    if "sections_permissions" not in user_data:
-        user_data["sections_permissions"] = {}
-    return {"all_sections": perms.get("all_sections", False), "sections_permissions": user_data.get("sections_permissions", {})}
-
-def has_section_permission(username, section_name, required_permission="view"):
-    if username == "admin":
-        return True
-    permissions = get_user_permissions(username)
-    if not permissions:
-        return False
-    if permissions.get("all_sections", False):
-        return True
-    section_perms = permissions.get("sections_permissions", {}).get(section_name, [])
-    return required_permission in section_perms
-
-def get_allowed_sections(all_sheets, username, required_permission="view"):
-    allowed = []
-    for sheet_name in all_sheets.keys():
-        if sheet_name in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]:
-            continue
-        if has_section_permission(username, sheet_name, required_permission):
-            allowed.append(sheet_name)
-    return allowed
-
-# ------------------------------- دوال الملفات -------------------------------
-def fetch_from_github_requests():
-    try:
-        response = requests.get(GITHUB_EXCEL_URL, stream=True, timeout=15)
-        response.raise_for_status()
-        with open(APP_CONFIG["LOCAL_FILE"], "wb") as f:
-            shutil.copyfileobj(response.raw, f)
-        st.cache_data.clear()
-        return True
-    except Exception as e:
-        st.error(f"فشل التحديث: {e}")
-        return False
-
-@st.cache_data(show_spinner=False)
-def load_all_sheets():
-    if not os.path.exists(APP_CONFIG["LOCAL_FILE"]):
-        return None
-    try:
-        sheets = pd.read_excel(APP_CONFIG["LOCAL_FILE"], sheet_name=None)
-        if not sheets:
-            return None
-        for name, df in sheets.items():
-            if df.empty:
-                continue
-            df.columns = df.columns.astype(str).str.strip()
-            df = df.fillna('')
-            sheets[name] = df
-        return sheets
-    except Exception as e:
-        st.error(f"خطأ في تحميل الأقسام: {e}")
-        return None
-
-@st.cache_data(show_spinner=False)
-def load_sheets_for_edit():
-    if not os.path.exists(APP_CONFIG["LOCAL_FILE"]):
-        return None
-    try:
-        sheets = pd.read_excel(APP_CONFIG["LOCAL_FILE"], sheet_name=None, dtype=object)
-        if not sheets:
-            return None
-        for name, df in sheets.items():
-            df.columns = df.columns.astype(str).str.strip()
-            df = df.fillna('')
-            sheets[name] = df
-        return sheets
-    except Exception as e:
-        st.error(f"خطأ في تحميل الأقسام: {e}")
-        return None
-
-def save_excel_locally(sheets_dict):
-    try:
-        if "temp_spare_parts_df" in st.session_state:
-            sheets_dict[APP_CONFIG["SPARE_PARTS_SHEET"]] = st.session_state.temp_spare_parts_df
-            del st.session_state.temp_spare_parts_df
-        # التأكد من وجود ورقة الصيانة الوقائية إذا كانت فارغة ولكن موجودة في sheets_dict
-        if APP_CONFIG["MAINTENANCE_SHEET"] not in sheets_dict:
-            sheets_dict[APP_CONFIG["MAINTENANCE_SHEET"]] = load_maintenance_tasks()
-        with pd.ExcelWriter(APP_CONFIG["LOCAL_FILE"], engine="openpyxl") as writer:
-            for name, sh in sheets_dict.items():
-                try:
-                    sh.to_excel(writer, sheet_name=name, index=False)
-                except Exception:
-                    sh.astype(object).to_excel(writer, sheet_name=name, index=False)
-        return True
-    except Exception as e:
-        st.error(f"❌ خطأ في الحفظ المحلي: {e}")
-        return False
-
-def push_to_github():
-    try:
-        token = st.secrets.get("github", {}).get("token", None)
-        if not token:
-            st.error("❌ لم يتم العثور على GitHub token في secrets")
-            return False
-        if not GITHUB_AVAILABLE:
-            st.error("❌ PyGithub غير متوفر")
-            return False
-        g = Github(token)
-        repo = g.get_repo(APP_CONFIG["REPO_NAME"])
-        with open(APP_CONFIG["LOCAL_FILE"], "rb") as f:
-            content = f.read()
-        try:
-            contents = repo.get_contents(APP_CONFIG["FILE_PATH"], ref=APP_CONFIG["BRANCH"])
-            repo.update_file(path=APP_CONFIG["FILE_PATH"], message=f"تحديث البيانات - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", content=content, sha=contents.sha, branch=APP_CONFIG["BRANCH"])
-            st.success("✅ تم رفع التغييرات إلى GitHub")
-            return True
-        except GithubException as e:
-            if e.status == 404:
-                repo.create_file(path=APP_CONFIG["FILE_PATH"], message=f"إنشاء ملف جديد - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", content=content, branch=APP_CONFIG["BRANCH"])
-                st.success("✅ تم إنشاء الملف على GitHub")
-                return True
-            else:
-                st.error(f"❌ خطأ GitHub: {e}")
-                return False
-    except Exception as e:
-        st.error(f"❌ فشل الرفع: {e}")
-        return False
-
-def save_and_push_to_github(sheets_dict, operation_name):
-    st.info(f"💾 جاري حفظ {operation_name}...")
-    if save_excel_locally(sheets_dict):
-        st.success("✅ تم الحفظ محلياً")
-        if push_to_github():
-            st.success("✅ تم الرفع إلى GitHub")
-            st.cache_data.clear()
-            return True
-        else:
-            st.warning("⚠️ تم الحفظ محلياً فقط")
-            return True
-    else:
-        st.error("❌ فشل الحفظ المحلي")
-        return False
-
-# ------------------------------- دوال التصدير والعرض -------------------------------
+# ------------------------------- دوال العرض والتصدير -------------------------------
 def export_sheet_to_excel(sheets_dict, sheet_name):
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -1085,42 +1085,12 @@ def search_across_sheets(all_sheets):
             st.warning("لا توجد نتائج")
 
 # ------------------------------- دوال إدارة المعدات والأقسام -------------------------------
-def load_equipment_config():
-    if not os.path.exists(EQUIPMENT_CONFIG_FILE):
-        default_config = {}
-        with open(EQUIPMENT_CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(default_config, f, indent=4, ensure_ascii=False)
-        return default_config
-    try:
-        with open(EQUIPMENT_CONFIG_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
-        return {}
-
-def save_equipment_config(config):
-    try:
-        with open(EQUIPMENT_CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(config, f, indent=4, ensure_ascii=False)
-        return True
-    except Exception as e:
-        st.error(f"خطأ في حفظ تكوين المعدات: {e}")
-        return False
-
 def get_equipment_list_from_sheet(df):
     if df is None or df.empty or "المعدة" not in df.columns:
         return []
     equipment = df["المعدة"].dropna().unique()
     equipment = [str(e).strip() for e in equipment if str(e).strip() != ""]
     return sorted(equipment)
-
-def get_available_sections(sheets_edit):
-    sections = []
-    for sheet_name, df in sheets_edit.items():
-        if sheet_name in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]:
-            continue
-        if "المعدة" in df.columns and not df["المعدة"].dropna().empty:
-            sections.append(sheet_name)
-    return sections
 
 def add_equipment_to_sheet_data(sheets_edit, sheet_name, new_equipment):
     if sheet_name not in sheets_edit:
@@ -1152,7 +1122,7 @@ def remove_equipment_from_sheet_data(sheets_edit, sheet_name, equipment_name):
 def add_new_department(sheets_edit):
     if st.session_state.get("username") == "admin":
         st.subheader("➕ إضافة قسم جديد")
-        st.info("سيتم إنشاء قسم جديد (شيت جديد) في ملف Excel لإدارة ماكينات هذا القسم")
+        st.info("سيتم إنشاء قسم جديد (مجموعة جديدة في Firestore) لإدارة ماكينات هذا القسم")
         col1, col2 = st.columns(2)
         with col1:
             new_department_name = st.text_input("📝 اسم القسم الجديد:", key="new_department_name", placeholder="مثال: قسم الميكانيكا, قسم الكهرباء, محطة المياه")
@@ -1189,7 +1159,8 @@ def add_new_department(sheets_edit):
                 return sheets_edit
             new_df = pd.DataFrame(columns=columns_list)
             sheets_edit[new_department_name] = new_df
-            if save_and_push_to_github(sheets_edit, f"إنشاء قسم جديد: {new_department_name}"):
+            # حفظ جميع الأقسام إلى Firebase
+            if save_all_sheets(sheets_edit):
                 st.success(f"✅ تم إنشاء القسم '{new_department_name}' بنجاح!")
                 st.cache_data.clear()
                 st.balloons()
@@ -1200,7 +1171,7 @@ def add_new_department(sheets_edit):
 
         st.markdown("---")
         st.subheader("🗑️ حذف قسم موجود")
-        st.warning("⚠️ انتبه: حذف القسم سيؤدي إلى حذف جميع بياناته (ماكينات، أعطال، قطع غيار) نهائياً ولا يمكن استرجاعها.")
+        st.warning("⚠️ انتبه: حذف القسم سيؤدي إلى حذف جميع بياناته (ماكينات، أعطال) نهائياً ولا يمكن استرجاعها.")
         deletable_sections = [name for name in sheets_edit.keys() if name not in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]]
         if not deletable_sections:
             st.info("لا توجد أقسام قابلة للحذف.")
@@ -1211,13 +1182,16 @@ def add_new_department(sheets_edit):
                 confirm = st.text_input("لتأكيد الحذف، اكتب اسم القسم هنا:", key="delete_confirm")
                 if confirm == selected_dept:
                     if st.button("🗑️ حذف القسم نهائياً", key="delete_department_btn", type="primary"):
+                        # حذف من sheets_edit
+                        del sheets_edit[selected_dept]
+                        # حذف قطع الغيار المرتبطة
                         spare_df = load_spare_parts()
                         if not spare_df.empty:
                             spare_df = spare_df[spare_df["القسم"] != selected_dept]
-                            sheets_edit[APP_CONFIG["SPARE_PARTS_SHEET"]] = spare_df
+                            save_spare_parts(spare_df)
                             st.info(f"🗑️ تم حذف قطع الغيار التابعة للقسم '{selected_dept}'.")
-                        del sheets_edit[selected_dept]
-                        if save_and_push_to_github(sheets_edit, f"حذف قسم: {selected_dept}"):
+                        # حفظ الأقسام
+                        if save_all_sheets(sheets_edit):
                             log_activity("delete_section", f"تم حذف القسم '{selected_dept}' وقطع الغيار التابعة له")
                             st.success(f"✅ تم حذف القسم '{selected_dept}' بنجاح!")
                             st.cache_data.clear()
@@ -1236,34 +1210,6 @@ def add_new_department(sheets_edit):
                 st.write(f"- 🏭 {dept_name}")
     else:
         st.info("لا توجد أقسام بعد")
-    return sheets_edit
-
-def add_new_machine(sheets_edit, sheet_name):
-    st.markdown(f"### 🔧 إضافة ماكينة جديدة في قسم: {sheet_name}")
-    df = sheets_edit[sheet_name]
-    equipment_list = get_equipment_list_from_sheet(df)
-    st.markdown(f"**الماكينات الموجودة حالياً في هذا القسم:**")
-    if equipment_list:
-        for eq in equipment_list:
-            st.markdown(f"- 🔹 {eq}")
-    else:
-        st.info("لا توجد ماكينات مسجلة بعد في هذا القسم")
-    st.markdown("---")
-    new_machine = st.text_input("📝 اسم الماكينة الجديدة:", key=f"new_machine_{sheet_name}", placeholder="مثال: محرك رئيسي 1, مضخة مياه, ضاغط هواء")
-    if st.button("➕ إضافة ماكينة", key=f"add_machine_{sheet_name}", type="primary"):
-        if new_machine:
-            success, msg = add_equipment_to_sheet_data(sheets_edit, sheet_name, new_machine)
-            if success:
-                if save_and_push_to_github(sheets_edit, f"إضافة ماكينة جديدة: {new_machine} في قسم {sheet_name}"):
-                    st.success(msg)
-                    st.cache_data.clear()
-                    st.rerun()
-                else:
-                    st.error("فشل الحفظ")
-            else:
-                st.error(msg)
-        else:
-            st.warning("يرجى إدخال اسم الماكينة")
     return sheets_edit
 
 def manage_machines(sheets_edit, sheet_name, unique_suffix=""):
@@ -1286,7 +1232,7 @@ def manage_machines(sheets_edit, sheet_name, unique_suffix=""):
             if new_machine:
                 success, msg = add_equipment_to_sheet_data(sheets_edit, sheet_name, new_machine)
                 if success:
-                    if save_and_push_to_github(sheets_edit, f"إضافة ماكينة: {new_machine} في قسم {sheet_name}"):
+                    if save_all_sheets(sheets_edit):
                         st.success(msg)
                         st.cache_data.clear()
                         st.rerun()
@@ -1308,7 +1254,7 @@ def manage_machines(sheets_edit, sheet_name, unique_suffix=""):
                 if submitted_del:
                     success, msg = remove_equipment_from_sheet_data(sheets_edit, sheet_name, machine_to_delete)
                     if success:
-                        if save_and_push_to_github(sheets_edit, f"حذف ماكينة: {machine_to_delete} من قسم {sheet_name}"):
+                        if save_all_sheets(sheets_edit):
                             st.success(msg)
                             st.cache_data.clear()
                             st.rerun()
@@ -1388,7 +1334,7 @@ def add_new_event(sheets_edit, sheet_name):
             image_url = None
             if uploaded_image is not None:
                 event_id = str(uuid.uuid4())[:8]
-                image_url = upload_image_to_github(uploaded_image, "event", event_id)
+                image_url = upload_image_to_firebase(uploaded_image, "event", event_id)
                 if image_url:
                     st.success("✅ تم رفع الصورة بنجاح!")
                 else:
@@ -1412,13 +1358,11 @@ def add_new_event(sheets_edit, sheet_name):
             new_row_df = pd.DataFrame([new_row])
             df_new = pd.concat([df, new_row_df], ignore_index=True)
             sheets_edit[sheet_name] = df_new
-            if "temp_spare_parts_df" in st.session_state:
-                sheets_edit[APP_CONFIG["SPARE_PARTS_SHEET"]] = st.session_state.temp_spare_parts_df
-                del st.session_state.temp_spare_parts_df
-            if save_and_push_to_github(sheets_edit, f"إضافة حدث عطل مع استخدام قطعة {part_name}"):
+            # حفظ جميع البيانات
+            if save_all_sheets(sheets_edit):
                 st.cache_data.clear()
                 log_activity("add_event", f"تم إضافة عطل: {event_desc[:50]} للماكينة {selected_equipment}")
-                st.success("✅ تم إضافة الحدث بنجاح ورفعه إلى GitHub!")
+                st.success("✅ تم إضافة الحدث بنجاح وحفظه في Firebase!")
                 if warning_msg:
                     st.warning(warning_msg)
                 st.rerun()
@@ -1426,69 +1370,7 @@ def add_new_event(sheets_edit, sheet_name):
                 st.error("❌ فشل الحفظ")
     return sheets_edit
 
-# ------------------------------- دوال مساعدة للصيانة الوقائية -------------------------------
-def execute_maintenance_with_date(sheets_edit, equipment_name, task_name, execution_date, performed_by, used_spare_part="", used_quantity=1, image_url=None):
-    # التأكد من وجود ورقة الصيانة الوقائية
-    if APP_CONFIG["MAINTENANCE_SHEET"] not in sheets_edit:
-        sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
-    df = sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]]
-    if df.empty:
-        return False, "لا توجد مهام صيانة"
-    mask = (df["المعدة"] == equipment_name) & (df["اسم_البند"] == task_name)
-    if not mask.any():
-        return False, f"المهمة '{task_name}' غير موجودة للمعدة '{equipment_name}'"
-    idx = df[mask].index[0]
-    period_days = df.loc[idx, "الفترة_بالأيام"]
-    df.loc[idx, "آخر_تنفيذ"] = pd.to_datetime(execution_date)
-    next_date = execution_date + timedelta(days=period_days)
-    df.loc[idx, "التاريخ_التالي"] = next_date
-    old_notes = df.loc[idx, "ملاحظات"] if pd.notna(df.loc[idx, "ملاحظات"]) else ""
-    new_entry = f"{execution_date.strftime('%Y-%m-%d')} | تم بواسطة: {performed_by}"
-    warning_msg = ""
-    if used_spare_part and used_quantity > 0:
-        success, msg, new_qty = consume_spare_part(used_spare_part, used_quantity)
-        if not success:
-            return False, f"فشل خصم قطعة الغيار: {msg}"
-        new_entry += f" | استخدمت {used_spare_part} كمية {used_quantity} - {msg}"
-        critical_parts = get_critical_spare_parts()
-        for cp in critical_parts:
-            if cp["اسم القطعة"] == used_spare_part:
-                warning_msg = f"⚠️ **تحذير:** القطعة '{used_spare_part}' ضرورية وأصبح رصيدها {new_qty} (أقل من 1). يرجى إعادة التوريد."
-                break
-    if image_url:
-        new_entry += f" | صورة: {image_url}"
-    df.loc[idx, "ملاحظات"] = (old_notes + "\n" + new_entry).strip()
-    sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = df
-    log_activity("execute_maintenance", f"تم تنفيذ صيانة '{task_name}' للماكينة {equipment_name} بواسطة {performed_by}")
-    result_msg = f"تم تنفيذ الصيانة '{task_name}' بتاريخ {execution_date.strftime('%Y-%m-%d')} بواسطة {performed_by}. التاريخ التالي: {next_date.strftime('%Y-%m-%d')}" + (f" {warning_msg}" if warning_msg else "")
-    return True, result_msg
-
-def add_maintenance_as_event(sheets_edit, equipment_name, task_name, execution_date, performed_by, used_spare_part="", used_quantity=1, image_url=None):
-    target_sheet = None
-    target_df = None
-    for sheet_name, df in sheets_edit.items():
-        if sheet_name not in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]:
-            if equipment_name in get_equipment_list_from_sheet(df):
-                target_sheet = sheet_name
-                target_df = df
-                break
-    if target_sheet is None:
-        return False, f"لم يتم العثور على قسم يحتوي على المعدة '{equipment_name}'"
-    spare_part_used = f"{used_spare_part} (كمية {used_quantity})" if used_spare_part else ""
-    new_row = {
-        "مده الاصلاح": 0, "التاريخ": execution_date.strftime("%Y-%m-%d"), "المعدة": equipment_name,
-        "الحدث/العطل": f"صيانة وقائية: {task_name}", "الإجراء التصحيحي": f"تم تنفيذ الصيانة الدورية '{task_name}' بواسطة {performed_by}",
-        "تم بواسطة": performed_by, "قطع غيار مستخدمة": spare_part_used, "نوع العطل": "صيانة وقائية",
-        "قدرة الفني (حل/تفكير/مبادرة/قرار)": 5, "الالتزام بتعليمات السلامة": "ملتزم بالكامل", "رابط الصورة": image_url or ""
-    }
-    for col in target_df.columns:
-        if col not in new_row:
-            new_row[col] = ""
-    new_row_df = pd.DataFrame([new_row])
-    sheets_edit[target_sheet] = pd.concat([target_df, new_row_df], ignore_index=True)
-    return True, f"تم تسجيل الصيانة كحدث في قسم '{target_sheet}' بواسطة {performed_by}"
-
-# ------------------------------- تبويب قطع الغيار والصيانة الوقائية -------------------------------
+# ------------------------------- تبويب قطع الغيار والصيانة الوقائية (معدلة) -------------------------------
 def manage_spare_parts_tab(sheets_edit):
     st.header("📦 إدارة قطع الغيار")
     st.info("هنا يمكنك إضافة وتعديل قطع الغيار المرتبطة بكل قسم. القطع المضافة للقسم 'عام' تكون متاحة لجميع الأقسام.")
@@ -1539,16 +1421,16 @@ def manage_spare_parts_tab(sheets_edit):
                         spare_df.loc[original_idx, "مدة التوريد"] = new_lead
                         spare_df.loc[original_idx, "ضرورية"] = "نعم" if new_critical else "لا"
                         spare_df.loc[original_idx, "حد_الإنذار"] = new_threshold
-                        sheets_edit[APP_CONFIG["SPARE_PARTS_SHEET"]] = spare_df
-                        if save_and_push_to_github(sheets_edit, f"تعديل قطعة: {selected_part_name}"):
-                            log_activity("add_spare_part", f"تم تعديل قطعة غيار '{selected_part_name}' للقسم {selected_section}")
+                        if save_spare_parts(spare_df):
+                            log_activity("edit_spare_part", f"تم تعديل قطعة غيار '{selected_part_name}' للقسم {selected_section}")
                             st.success("تم التعديل")
                             st.rerun()
+                        else:
+                            st.error("فشل الحفظ")
                 if st.button("🗑️ حذف هذه القطعة", key="delete_part_btn"):
                     original_idx = part_row["original_index"]
                     spare_df = spare_df.drop(index=original_idx)
-                    sheets_edit[APP_CONFIG["SPARE_PARTS_SHEET"]] = spare_df
-                    if save_and_push_to_github(sheets_edit, f"حذف قطعة: {selected_part_name}"):
+                    if save_spare_parts(spare_df):
                         st.success("تم الحذف")
                         st.rerun()
         else:
@@ -1583,8 +1465,7 @@ def manage_spare_parts_tab(sheets_edit):
                                     if st.button("🗑️ حذف", key=f"delete_card_{row['id']}"):
                                         original_idx = row["original_index"]
                                         spare_df = spare_df.drop(index=original_idx)
-                                        sheets_edit[APP_CONFIG["SPARE_PARTS_SHEET"]] = spare_df
-                                        if save_and_push_to_github(sheets_edit, f"حذف قطعة: {row['اسم القطعة']}"):
+                                        if save_spare_parts(spare_df):
                                             st.success("تم الحذف")
                                             st.rerun()
                                 if st.session_state.get(f"edit_mode_{row['id']}", False):
@@ -1601,8 +1482,7 @@ def manage_spare_parts_tab(sheets_edit):
                                             spare_df.loc[original_idx, "الرصيد الموجود"] = new_qty
                                             spare_df.loc[original_idx, "مدة التوريد"] = new_lead
                                             spare_df.loc[original_idx, "ضرورية"] = "نعم" if new_critical else "لا"
-                                            sheets_edit[APP_CONFIG["SPARE_PARTS_SHEET"]] = spare_df
-                                            if save_and_push_to_github(sheets_edit, f"تعديل قطعة: {row['اسم القطعة']}"):
+                                            if save_spare_parts(spare_df):
                                                 st.success("تم التعديل")
                                                 del st.session_state[f"edit_mode_{row['id']}"]
                                                 st.rerun()
@@ -1632,7 +1512,7 @@ def manage_spare_parts_tab(sheets_edit):
                     image_url = None
                     if part_image is not None:
                         part_id = str(uuid.uuid4())[:8]
-                        image_url = upload_image_to_github(part_image, "spare_part", part_id)
+                        image_url = upload_image_to_firebase(part_image, "spare_part", part_id)
                         if image_url:
                             st.success("✅ تم رفع الصورة")
                         else:
@@ -1648,8 +1528,7 @@ def manage_spare_parts_tab(sheets_edit):
                         "حد_الإنذار": critical_threshold
                     }])
                     new_spare_df = pd.concat([spare_df, new_row], ignore_index=True)
-                    sheets_edit[APP_CONFIG["SPARE_PARTS_SHEET"]] = new_spare_df
-                    if save_and_push_to_github(sheets_edit, f"إضافة قطعة غيار: {part_name} للقسم {selected_section}"):
+                    if save_spare_parts(new_spare_df):
                         log_activity("add_spare_part", f"تم إضافة قطعة غيار '{part_name}' للقسم {selected_section} (الرصيد: {initial_qty})")
                         st.success("✅ تمت إضافة قطعة الغيار")
                         st.rerun()
@@ -1659,7 +1538,7 @@ def manage_spare_parts_tab(sheets_edit):
 
 def preventive_maintenance_tab(sheets_edit):
     st.header("🛠 الصيانة الوقائية")
-    st.info("إدارة بنود الصيانة الدورية. يتم حفظ البيانات تلقائياً في ملف Excel.")
+    st.info("إدارة بنود الصيانة الدورية. يتم حفظ البيانات تلقائياً في Firebase.")
     username = st.session_state.get("username")
     all_sheets = load_all_sheets()
     allowed_sections = get_allowed_sections(all_sheets, username, "view")
@@ -1673,11 +1552,7 @@ def preventive_maintenance_tab(sheets_edit):
         st.warning(f"⚠️ لا توجد ماكينات في قسم '{selected_section}'.")
         return sheets_edit
     selected_equipment = st.selectbox("🔧 اختر المعدة:", equipment_list, key="pm_equipment")
-    if APP_CONFIG["MAINTENANCE_SHEET"] in sheets_edit:
-        tasks_df = sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]].copy()
-    else:
-        tasks_df = load_maintenance_tasks()
-        sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = tasks_df
+    tasks_df = load_maintenance_tasks()
     tasks_df = tasks_df[tasks_df["المعدة"] == selected_equipment].copy()
     st.subheader(f"📋 بنود الصيانة لـ {selected_equipment}")
     if tasks_df.empty:
@@ -1710,25 +1585,26 @@ def preventive_maintenance_tab(sheets_edit):
                     new_notes = st.text_area("ملاحظات", value=task_row["ملاحظات"] if pd.notna(task_row["ملاحظات"]) else "", key="edit_task_notes")
                     if st.button("💾 حفظ التغييرات", key="save_task_edit"):
                         new_period_days = new_period_hours / 24.0
-                        main_df = sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]]
+                        main_df = load_maintenance_tasks()
+                        # نجد الصف الأصلي
                         main_df.loc[original_idx, "اسم_البند"] = new_name
                         main_df.loc[original_idx, "الفترة_بالأيام"] = new_period_days
                         main_df.loc[original_idx, "نوع_الصيانة"] = f"{new_period_hours} ساعة"
                         main_df.loc[original_idx, "ملاحظات"] = new_notes
                         last_exec = main_df.loc[original_idx, "آخر_تنفيذ"]
-                        if pd.notna(last_exec) and hasattr(last_exec, 'date'):
+                        if pd.notna(last_exec):
                             main_df.loc[original_idx, "التاريخ_التالي"] = last_exec + timedelta(days=new_period_days)
                         else:
                             main_df.loc[original_idx, "التاريخ_التالي"] = datetime.now().date() + timedelta(days=new_period_days)
-                        sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = main_df
-                        if save_and_push_to_github(sheets_edit, f"تعديل بند صيانة: {selected_task_name}"):
+                        if save_maintenance_tasks(main_df):
                             st.success("تم التعديل")
                             st.rerun()
+                        else:
+                            st.error("فشل الحفظ")
                 if st.button("🗑️ حذف هذا البند", key="delete_task_btn"):
-                    main_df = sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]]
+                    main_df = load_maintenance_tasks()
                     main_df = main_df.drop(index=original_idx)
-                    sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = main_df
-                    if save_and_push_to_github(sheets_edit, f"حذف بند صيانة: {selected_task_name}"):
+                    if save_maintenance_tasks(main_df):
                         st.success("تم الحذف")
                         st.rerun()
         else:
@@ -1754,13 +1630,13 @@ def preventive_maintenance_tab(sheets_edit):
                                 st.markdown(f"**نوع الصيانة:** {row['نوع_الصيانة']}")
                                 st.markdown(f"**الفترة:** {row['الفترة_بالأيام']:.2f} يوم")
                                 last_exec_val = row['آخر_تنفيذ']
-                                if pd.notna(last_exec_val) and hasattr(last_exec_val, 'strftime'):
+                                if pd.notna(last_exec_val):
                                     last_exec_str = last_exec_val.strftime('%Y-%m-%d')
                                 else:
                                     last_exec_str = 'لم تنفذ بعد'
                                 st.markdown(f"**آخر تنفيذ:** {last_exec_str}")
                                 next_date_val = row['التاريخ_التالي']
-                                if pd.notna(next_date_val) and hasattr(next_date_val, 'strftime'):
+                                if pd.notna(next_date_val):
                                     next_date_str = next_date_val.strftime('%Y-%m-%d')
                                 else:
                                     next_date_str = 'غير محدد'
@@ -1772,10 +1648,9 @@ def preventive_maintenance_tab(sheets_edit):
                                         st.session_state[f"edit_task_mode_{original_idx}"] = True
                                 with col_btn2:
                                     if st.button("🗑️ حذف", key=f"delete_task_card_{original_idx}"):
-                                        main_df = sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]]
+                                        main_df = load_maintenance_tasks()
                                         main_df = main_df.drop(index=original_idx)
-                                        sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = main_df
-                                        if save_and_push_to_github(sheets_edit, f"حذف بند صيانة: {row['اسم_البند']}"):
+                                        if save_maintenance_tasks(main_df):
                                             st.success("تم الحذف")
                                             st.rerun()
                                 if st.session_state.get(f"edit_task_mode_{original_idx}", False):
@@ -1785,18 +1660,17 @@ def preventive_maintenance_tab(sheets_edit):
                                         new_notes = st.text_area("ملاحظات", value=row['ملاحظات'] if pd.notna(row['ملاحظات']) else "")
                                         if st.form_submit_button("💾 حفظ"):
                                             new_period_days = new_period_hours / 24.0
-                                            main_df = sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]]
+                                            main_df = load_maintenance_tasks()
                                             main_df.loc[original_idx, "اسم_البند"] = new_name
                                             main_df.loc[original_idx, "الفترة_بالأيام"] = new_period_days
                                             main_df.loc[original_idx, "نوع_الصيانة"] = f"{new_period_hours} ساعة"
                                             main_df.loc[original_idx, "ملاحظات"] = new_notes
                                             last_exec = main_df.loc[original_idx, "آخر_تنفيذ"]
-                                            if pd.notna(last_exec) and hasattr(last_exec, 'date'):
+                                            if pd.notna(last_exec):
                                                 main_df.loc[original_idx, "التاريخ_التالي"] = last_exec + timedelta(days=new_period_days)
                                             else:
                                                 main_df.loc[original_idx, "التاريخ_التالي"] = datetime.now().date() + timedelta(days=new_period_days)
-                                            sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = main_df
-                                            if save_and_push_to_github(sheets_edit, f"تعديل بند صيانة: {row['اسم_البند']}"):
+                                            if save_maintenance_tasks(main_df):
                                                 st.success("تم التعديل")
                                                 del st.session_state[f"edit_task_mode_{original_idx}"]
                                                 st.rerun()
@@ -1839,22 +1713,19 @@ def preventive_maintenance_tab(sheets_edit):
                         image_url = None
                         if execution_image:
                             maint_id = str(uuid.uuid4())[:8]
-                            image_url = upload_image_to_github(execution_image, "maintenance_execution", maint_id)
-                        success, msg = execute_maintenance_with_date(sheets_edit, selected_equipment, selected_task, execution_date, performed_by, part_name, consume_qty, image_url)
+                            image_url = upload_image_to_firebase(execution_image, "maintenance_execution", maint_id)
+                        # تنفيذ الصيانة
+                        success, msg = execute_maintenance_with_date(None, selected_equipment, selected_task, execution_date, performed_by, part_name, consume_qty, image_url)
                         if success:
                             if link_to_event:
-                                event_success, event_msg = add_maintenance_as_event(sheets_edit, selected_equipment, selected_task, execution_date, performed_by, part_name, consume_qty, image_url)
+                                event_success, event_msg = add_maintenance_as_event(None, selected_equipment, selected_task, execution_date, performed_by, part_name, consume_qty, image_url)
                                 if event_success:
                                     st.success(f"✅ {msg} وتم تسجيله كحدث عطل")
                                 else:
                                     st.warning(f"✅ {msg} لكن فشل تسجيل الحدث: {event_msg}")
                             else:
                                 st.success(msg)
-                            if "temp_spare_parts_df" in st.session_state:
-                                sheets_edit[APP_CONFIG["SPARE_PARTS_SHEET"]] = st.session_state.temp_spare_parts_df
-                                del st.session_state.temp_spare_parts_df
-                            if save_and_push_to_github(sheets_edit, f"تنفيذ صيانة '{selected_task}' لـ {selected_equipment} بواسطة {performed_by}"):
-                                st.rerun()
+                            st.rerun()
                         else:
                             st.error(msg)
         else:
@@ -1883,25 +1754,17 @@ def preventive_maintenance_tab(sheets_edit):
                 image_url = None
                 if task_image:
                     task_id = str(uuid.uuid4())[:8]
-                    image_url = upload_image_to_github(task_image, "maintenance_task", task_id)
-                sheets_edit = add_maintenance_task(sheets_edit, selected_equipment, task_name, period_hours, start_date, notes, default_spare, image_url)
-                if save_and_push_to_github(sheets_edit, f"إضافة بند صيانة '{task_name}'"):
-                    st.success("✅ تم إضافة البند بنجاح")
-                    st.rerun()
-                else:
-                    st.error("❌ فشل الحفظ")
+                    image_url = upload_image_to_firebase(task_image, "maintenance_task", task_id)
+                add_maintenance_task(None, selected_equipment, task_name, period_hours, start_date, notes, default_spare, image_url)
+                st.success("✅ تم إضافة البند بنجاح")
+                st.rerun()
     return sheets_edit
 
-# ------------------------------- دالة إدارة البيانات الرئيسية -------------------------------
+# ------------------------------- دالة إدارة البيانات الرئيسية (معدلة) -------------------------------
 def manage_data_edit(sheets_edit):
     if sheets_edit is None:
-        st.warning("الملف غير موجود. استخدم زر 'تحديث من GitHub' في الشريط الجانبي أولاً")
+        st.warning("لا توجد بيانات. قم بتحديث من Firebase أولاً.")
         return sheets_edit
-    if APP_CONFIG["SPARE_PARTS_SHEET"] not in sheets_edit:
-        sheets_edit[APP_CONFIG["SPARE_PARTS_SHEET"]] = load_spare_parts()
-    if APP_CONFIG["MAINTENANCE_SHEET"] not in sheets_edit:
-        sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = load_maintenance_tasks()
-    # إزالة تبويب إضافة حدث عطل لأنه أصبح مستقلاً
     tab_names = ["📋 عرض الأقسام", "🔧 إدارة الماكينات", "➕ إضافة قسم جديد", "📦 قطع الغيار", "🛠 الصيانة الوقائية"]
     tabs_edit = st.tabs(tab_names)
     with tabs_edit[0]:
@@ -1918,9 +1781,9 @@ def manage_data_edit(sheets_edit):
                             edited_df = st.data_editor(df.astype(str), num_rows="dynamic", use_container_width=True, key=f"editor_{dept_name}")
                             if st.button(f"💾 حفظ", key=f"save_{dept_name}"):
                                 sheets_edit[dept_name] = edited_df.astype(object)
-                                if save_and_push_to_github(sheets_edit, f"تعديل بيانات في قسم {dept_name}"):
+                                if save_all_sheets(sheets_edit):
                                     st.cache_data.clear()
-                                    st.success("تم الحفظ والرفع إلى GitHub!")
+                                    st.success("تم الحفظ إلى Firebase!")
                                     st.rerun()
             else:
                 st.info("لا توجد أقسام بعد")
@@ -1936,7 +1799,10 @@ def manage_data_edit(sheets_edit):
         sheets_edit = preventive_maintenance_tab(sheets_edit)
     return sheets_edit
 
-# ------------------------------- الواجهة الرئيسية -------------------------------
+# ------------------------------- واجهة المستخدم الرئيسية -------------------------------
+st.set_page_config(page_title=APP_CONFIG["APP_TITLE"], layout="wide")
+
+# الشريط الجانبي
 with st.sidebar:
     st.header("الجلسة")
     if not st.session_state.get("logged_in"):
@@ -1950,29 +1816,24 @@ with st.sidebar:
             mins, secs = divmod(int(rem.total_seconds()), 60)
             st.success(f"👋 {username} | ⏳ {mins:02d}:{secs:02d}")
         st.markdown("---")
-        if st.button("🔄 تحديث  "):
-            if fetch_from_github_requests():
-                st.rerun()
-        if st.button("مسح مهملات"):
+        if st.button("🔄 تحديث البيانات"):
             st.cache_data.clear()
             st.rerun()
         if st.button("🚪 تسجيل الخروج"):
             logout_action()
 
-# ------------------------------- تحميل البيانات الرئيسية -------------------------------
+# تحميل البيانات
 all_sheets = load_all_sheets()
-sheets_edit = load_sheets_for_edit()
-st.title(f"{APP_CONFIG['APP_ICON']} {APP_CONFIG['APP_TITLE']}")
-user_role = st.session_state.get("user_role", "viewer")
-user_permissions = st.session_state.get("user_permissions", ["view"])
-can_edit = (user_role == "admin" or user_role == "editor" or "edit" in user_permissions)
+if all_sheets is None:
+    st.error("فشل تحميل البيانات من Firebase. تأكد من الاتصال وإعدادات secrets.")
+    st.stop()
 
-# ------------------------------- بناء قائمة التبويبات حسب الصلاحيات -------------------------------
-all_sheets = load_all_sheets()
-sheets_edit = load_sheets_for_edit()
+# نسخة قابلة للتعديل من الأقسام
+sheets_edit = all_sheets.copy()
+
 st.title(f"{APP_CONFIG['APP_ICON']} {APP_CONFIG['APP_TITLE']}")
-user_role = st.session_state.get("user_role", "viewer")
 username = st.session_state.get("username", "")
+user_role = st.session_state.get("user_role", "viewer")
 
 def user_can(permission_type):
     if username == "admin":
@@ -1998,17 +1859,18 @@ if can_manage_machines:
 if can_edit_data:
     tabs_list.append("🛠 تعديل وإدارة البيانات")
 tabs_list.append("📞 الدعم الفني")
+
 tabs = st.tabs(tabs_list)
 
-# ------------------------------- تبويب البحث -------------------------------
+# تبويب البحث
 with tabs[0]:
     search_across_sheets(all_sheets)
 
-# ------------------------------- تبويب تحليل الأعطال -------------------------------
+# تبويب تحليل الأعطال
 with tabs[1]:
     failures_analysis_tab(all_sheets)
 
-# ------------------------------- تبويب الإشعارات -------------------------------
+# تبويب الإشعارات
 with tabs[2]:
     st.header("🔔 الإشعارات")
     if st.session_state.get("username") == "admin":
@@ -2061,9 +1923,8 @@ with tabs[2]:
         else:
             st.info("✅ لا توجد صيانات قادمة")
 
-# ------------------------------- تبويب إضافة حدث عطل -------------------------------
+# تبويب إضافة حدث عطل
 if can_add_event:
-    # حساب الفهرس المناسب: بعد أول 3 تبويبات ثابتة
     idx_add = 3
     with tabs[idx_add]:
         if sheets_edit:
@@ -2074,14 +1935,14 @@ if can_add_event:
                 if has_section_permission(username, sheet_name, "add_event"):
                     allowed_for_add.append(sheet_name)
             if allowed_for_add:
-                sheet_name = st.selectbox("اختر القسم:", allowed_for_add, key="add_event_sheet_main")  # مفتاح فريد
+                sheet_name = st.selectbox("اختر القسم:", allowed_for_add, key="add_event_sheet_main")
                 sheets_edit = add_new_event(sheets_edit, sheet_name)
             else:
                 st.warning("لا توجد أقسام مسموح لك بإضافة أحداث فيها.")
         else:
             st.warning("لا توجد بيانات")
 
-# ------------------------------- تبويب إدارة الماكينات -------------------------------
+# تبويب إدارة الماكينات
 if can_manage_machines:
     idx_manage = 3 + (1 if can_add_event else 0)
     with tabs[idx_manage]:
@@ -2093,20 +1954,20 @@ if can_manage_machines:
                 if has_section_permission(username, sheet_name, "manage_machines"):
                     allowed_for_machines.append(sheet_name)
             if allowed_for_machines:
-                sheet_name = st.selectbox("اختر القسم:", allowed_for_machines, key="manage_machines_sheet_main")  # مفتاح فريد
+                sheet_name = st.selectbox("اختر القسم:", allowed_for_machines, key="manage_machines_sheet_main")
                 manage_machines(sheets_edit, sheet_name, unique_suffix="main")
             else:
                 st.warning("لا توجد أقسام مسموح لك بإدارة الماكينات فيها.")
         else:
             st.warning("لا توجد بيانات")
 
-# ------------------------------- تبويب تعديل وإدارة البيانات الكاملة -------------------------------
+# تبويب تعديل وإدارة البيانات الكاملة
 if can_edit_data:
     idx_edit = 3 + (1 if can_add_event else 0) + (1 if can_manage_machines else 0)
     with tabs[idx_edit]:
         sheets_edit = manage_data_edit(sheets_edit)
 
-# ------------------------------- تبويب الدعم الفني -------------------------------
+# تبويب الدعم الفني
 idx_support = len(tabs_list) - 1
 with tabs[idx_support]:
     st.header("📞 الدعم الفني")
@@ -2115,17 +1976,17 @@ with tabs[idx_support]:
     st.markdown("---")
     st.markdown("📧 **للتواصل والدعم الفني:** `01274424062`")
     st.markdown("---")
-    YOUTUBE_LINK = "https://youtube.com/@cardtrutchler?si=bayhxhRXgCzWSpCl"
+    support_config = load_support_config()
+    YOUTUBE_LINK = support_config.get("youtube_link", "https://youtube.com/@cardtrutchler?si=bayhxhRXgCzWSpCl")
     st.markdown(f"[📺 قناة اليوتيوب الرسمية]({YOUTUBE_LINK})")
     st.caption(f"رابط القناة: {YOUTUBE_LINK}")
     st.markdown("---")
-    support_config = load_support_config()
     current_image_url = support_config.get("image_url", "")
-    st.subheader("🖼️ ")
+    st.subheader("🖼️ صورة المطور")
     if current_image_url and current_image_url.strip():
         try:
             st.image(current_image_url, use_container_width=True)
-            st.caption("✅ ")
+            st.caption("✅ صورة المطور")
         except:
             st.warning("⚠️ تعذر عرض الصورة المحفوظة")
     else:
@@ -2134,7 +1995,7 @@ with tabs[idx_support]:
             uploaded_img = st.file_uploader("رفع صورة للمطور (jpg, png, ...)", type=APP_CONFIG["ALLOWED_IMAGE_TYPES"], key="support_img_upload_once")
             if uploaded_img is not None:
                 with st.spinner("جاري رفع الصورة..."):
-                    image_url = upload_image_to_github(uploaded_img, "support", "developer_image_final")
+                    image_url = upload_image_to_firebase(uploaded_img, "support", "developer_image_final")
                     if image_url:
                         support_config["image_url"] = image_url
                         save_support_config(support_config)
