@@ -14,9 +14,9 @@ from github import Github, GithubException
 
 # ------------------------------- الإعدادات الثابتة -------------------------------
 APP_CONFIG = {
-    "APP_TITLE": "نظام اداره سكاي",
+    "APP_TITLE": "بيل يارن1- CMMS",
     "APP_ICON": "🏭",
-    "REPO_NAME": "mahmedabdallh123/sky",
+    "REPO_NAME": "mahmedabdallh123/stations",
     "BRANCH": "main",
     "FILE_PATH": "l9.xlsx",
     "LOCAL_FILE": "l9.xlsx",
@@ -59,10 +59,11 @@ SESSION_DURATION = timedelta(minutes=APP_CONFIG["SESSION_DURATION_MINUTES"])
 MAX_ACTIVE_USERS = APP_CONFIG["MAX_ACTIVE_USERS"]
 IMAGES_FOLDER = APP_CONFIG["IMAGES_FOLDER"]
 EQUIPMENT_CONFIG_FILE = "equipment_config.json"
+SUPPORT_CONFIG_FILE = "support_config.json"   # جديد: إعدادات الدعم الفني
 
 GITHUB_EXCEL_URL = f"https://github.com/{APP_CONFIG['REPO_NAME'].split('/')[0]}/{APP_CONFIG['REPO_NAME'].split('/')[1]}/raw/{APP_CONFIG['BRANCH']}/{APP_CONFIG['FILE_PATH']}"
-GITHUB_USERS_URL = "https://raw.githubusercontent.com/mahmedabdallh123/sky/refs/heads/main/users.json"
-GITHUB_REPO_USERS = "mahmedabdallh123/sky"
+GITHUB_USERS_URL = "https://raw.githubusercontent.com/mahmedabdallh123/stations/refs/heads/main/users.json"
+GITHUB_REPO_USERS = "mahmedabdallh123/stations"
 GITHUB_TOKEN = st.secrets.get("github", {}).get("token", None)
 GITHUB_AVAILABLE = GITHUB_TOKEN is not None
 ACTIVITY_LOG_FILE = "activity_log.json"
@@ -106,6 +107,46 @@ def get_image_component(image_url, caption=""):
     except:
         st.warning(f"⚠️ تعذر عرض الصورة: {image_url}")
         return None
+
+# ------------------------------- دوال إعدادات الدعم الفني (جديدة) -------------------------------
+def load_support_config():
+    """تحميل إعدادات الدعم الفني (رابط الصورة، رابط اليوتيوب)"""
+    default_config = {"image_url": "", "youtube_link": ""}
+    if GITHUB_AVAILABLE:
+        try:
+            g = Github(GITHUB_TOKEN)
+            repo = g.get_repo(APP_CONFIG["REPO_NAME"])
+            contents = repo.get_contents(SUPPORT_CONFIG_FILE, ref=APP_CONFIG["BRANCH"])
+            import base64
+            content = base64.b64decode(contents.content).decode('utf-8')
+            config = json.loads(content)
+            return config
+        except:
+            pass
+    if os.path.exists(SUPPORT_CONFIG_FILE):
+        try:
+            with open(SUPPORT_CONFIG_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return default_config
+    return default_config
+
+def save_support_config(config):
+    """حفظ إعدادات الدعم الفني على GitHub والمحلي"""
+    config_str = json.dumps(config, indent=2, ensure_ascii=False)
+    if GITHUB_AVAILABLE:
+        try:
+            g = Github(GITHUB_TOKEN)
+            repo = g.get_repo(APP_CONFIG["REPO_NAME"])
+            try:
+                contents = repo.get_contents(SUPPORT_CONFIG_FILE, ref=APP_CONFIG["BRANCH"])
+                repo.update_file(SUPPORT_CONFIG_FILE, "تحديث إعدادات الدعم الفني", config_str, contents.sha, branch=APP_CONFIG["BRANCH"])
+            except:
+                repo.create_file(SUPPORT_CONFIG_FILE, "إنشاء إعدادات الدعم الفني", config_str, branch=APP_CONFIG["BRANCH"])
+        except:
+            pass
+    with open(SUPPORT_CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
 
 # ------------------------------- دوال قطع الغيار -------------------------------
 def load_spare_parts():
@@ -156,27 +197,21 @@ def get_critical_spare_parts():
     df = load_spare_parts()
     if df.empty:
         return []
-    # تنظيف البيانات
     df["الرصيد الموجود"] = pd.to_numeric(df["الرصيد الموجود"], errors='coerce').fillna(0)
     if "حد_الإنذار" not in df.columns:
         df["حد_الإنذار"] = 1
     else:
         df["حد_الإنذار"] = pd.to_numeric(df["حد_الإنذار"], errors='coerce').fillna(1)
-    # التأكد من أن عمود "القسم" موجود وليس فارغاً
     if "القسم" not in df.columns:
         return []
     df["القسم"] = df["القسم"].fillna("").astype(str)
-    # فقط القطع التي لها قسم صالح (غير فارغ)
     df = df[df["القسم"].str.strip() != ""]
-    # فقط القطع الضرورية
     df["ضرورية"] = df["ضرورية"].astype(str).str.strip()
     critical = df[(df["ضرورية"] == "نعم") & (df["الرصيد الموجود"] < df["حد_الإنذار"])]
     result = critical[["اسم القطعة", "القسم", "الرصيد الموجود", "حد_الإنذار"]].to_dict('records')
     return result
-    
-# ------------------------------- دوال سجل النشاطات -------------------------------
-ACTIVITY_LOG_FILE = "activity_log.json"
 
+# ------------------------------- دوال سجل النشاطات -------------------------------
 def log_activity(action_type, details, username=None):
     if username is None:
         username = st.session_state.get("username", "غير معروف")
@@ -278,49 +313,6 @@ def get_upcoming_maintenance(days_ahead=3):
     return overdue, upcoming
 
 # ------------------------------- دوال تحليل الأعطال المتقدمة -------------------------------
-# ------------------------------- دوال تحليل الأعطال المتقدمة -------------------------------
-# ------------------------------- دوال تحليل الأعطال المتقدمة -------------------------------
-def flexible_date_parser(date_series):
-    """تحويل سلسلة من التواريخ بتنسيقات متعددة إلى datetime، مع تجاهل الأخطاء."""
-    def parse_single(val):
-        if pd.isna(val) or val == "":
-            return pd.NaT
-        if isinstance(val, (pd.Timestamp, datetime)):
-            return val
-        val_str = str(val).strip()
-        # استبدال الشرطات المائلة العكسية بشرطات عادية
-        val_str = val_str.replace('\\', '/')
-        
-        # تنسيق YYYY-MM-DD
-        try:
-            return pd.to_datetime(val_str, format='%Y-%m-%d', errors='raise')
-        except:
-            pass
-        # تنسيق DD/MM/YYYY
-        try:
-            return pd.to_datetime(val_str, format='%d/%m/%Y', errors='raise')
-        except:
-            pass
-        # تنسيق DD-MM-YYYY
-        try:
-            return pd.to_datetime(val_str, format='%d-%m-%Y', errors='raise')
-        except:
-            pass
-        # تنسيق DD.MM.YYYY
-        try:
-            return pd.to_datetime(val_str, format='%d.%m.%Y', errors='raise')
-        except:
-            pass
-        # تنسيق YYYY/MM/DD
-        try:
-            return pd.to_datetime(val_str, format='%Y/%m/%d', errors='raise')
-        except:
-            pass
-        # أخيراً، ترك pandas يحاول
-        return pd.to_datetime(val_str, errors='coerce')
-    return date_series.apply(parse_single)
-
-# ------------------------------- دوال تحليل الأعطال المتقدمة -------------------------------
 def flexible_date_parser(date_series):
     """تحويل سلسلة من التواريخ بتنسيقات متعددة إلى datetime، مع تجاهل الأخطاء."""
     def parse_single(val):
@@ -364,7 +356,6 @@ def analyze_time_between_corrections(df, filter_text=None):
     data["التاريخ"] = flexible_date_parser(data["التاريخ"])
     data = data.dropna(subset=["التاريخ"]).sort_values(["المعدة", "التاريخ"])
     
-    # إذا كان هناك نص بحث، نصفي الإجراءات التصحيحية التي تحتوي عليه
     if filter_text:
         data["الإجراء التصحيحي"] = data["الإجراء التصحيحي"].fillna("").astype(str)
         data = data[data["الإجراء التصحيحي"].str.contains(filter_text, case=False, na=False)]
@@ -401,7 +392,6 @@ def failures_analysis_tab(all_sheets):
         st.warning("لا توجد بيانات للتحليل")
         return
     
-    # اختيار القسم
     all_section_names = [name for name in all_sheets.keys() if name not in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]]
     if not all_section_names:
         st.warning("لا توجد أقسام متاحة للتحليل")
@@ -452,7 +442,6 @@ def failures_analysis_tab(all_sheets):
         
         details_gaps = analyze_time_between_corrections(filtered_df, search_text if search_text else None)
         
-        # الأعطال الأكثر تكراراً (اختياري: يمكن إزالته إذا لم ترغب فيه)
         if "الإجراء التصحيحي" in filtered_df.columns:
             top_corrections = filtered_df["الإجراء التصحيحي"].value_counts().reset_index().head(10)
             top_corrections.columns = ["الإجراء التصحيحي", "عدد المرات"]
@@ -486,7 +475,6 @@ def failures_analysis_tab(all_sheets):
             csv = details_gaps.to_csv(index=False).encode('utf-8')
             st.download_button("📥 تحميل الفجوات التفصيلية CSV", csv, "detailed_corrections_gaps.csv", "text/csv")
         
-        # تصدير كامل
         st.markdown("---")
         st.subheader("📥 تصدير التقرير كامل (Excel)")
         excel_buffer = io.BytesIO()
@@ -505,6 +493,7 @@ def failures_analysis_tab(all_sheets):
             f"corrections_analysis_{selected_section}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 def download_users_from_github():
     try:
         response = requests.get(GITHUB_USERS_URL, timeout=10)
@@ -893,10 +882,8 @@ def search_across_sheets(all_sheets):
 
     username = st.session_state.get("username")
     
-    # خيار نوع البحث
     search_type = st.selectbox("نوع البيانات المراد البحث فيها:", ["الأقسام (الأعطال)", "قطع الغيار", "الصيانة الوقائية"], key="search_type")
 
-    # الأقسام المسموحة للمستخدم
     allowed_sections = get_allowed_sections(all_sheets, username, "view")
     
     selected_section_filter = "جميع الأقسام"
@@ -904,7 +891,6 @@ def search_across_sheets(all_sheets):
         section_options = ["جميع الأقسام"] + allowed_sections
         selected_section_filter = st.selectbox("🏭 القسم:", section_options, key="section_filter")
 
-    # ================== الأقسام (الأعطال) ==================
     if search_type == "الأقسام (الأعطال)":
         sheet_options = ["جميع الأقسام"] + allowed_sections
         selected_sheet = st.selectbox("اختر القسم للبحث:", sheet_options, key="search_sheet")
@@ -920,7 +906,6 @@ def search_across_sheets(all_sheets):
             equipment_list = sorted(all_eq)
         filter_equipment = st.selectbox("فلتر حسب الماكينة:", ["الكل"] + equipment_list, key="search_eq")
         
-        # حقول البحث المخصصة للأعطال
         col1, col2 = st.columns(2)
         with col1:
             general_search = st.text_input("🔍 كلمة البحث العامة (في الحدث/الإجراء):", placeholder="مثال: تسريب زيت, قطع سير...")
@@ -953,11 +938,9 @@ def search_across_sheets(all_sheets):
             for sheet_name, df in sheets_to_search:
                 df_filtered = df.copy()
                 
-                # فلتر الماكينة
                 if filter_equipment != "الكل" and "المعدة" in df_filtered.columns:
                     df_filtered = df_filtered[df_filtered["المعدة"] == filter_equipment]
                 
-                # فلتر التاريخ
                 if "التاريخ" in df_filtered.columns:
                     df_filtered["التاريخ"] = flexible_date_parser(df_filtered["التاريخ"])
                     df_filtered = df_filtered.dropna(subset=["التاريخ"])
@@ -965,7 +948,6 @@ def search_across_sheets(all_sheets):
                         mask = (df_filtered["التاريخ"] >= pd.to_datetime(start_date)) & (df_filtered["التاريخ"] <= pd.to_datetime(end_date) + timedelta(days=1))
                         df_filtered = df_filtered[mask]
                 
-                # البحث العام (فقط في الحدث/العطل والإجراء التصحيحي)
                 if general_search:
                     event_col = "الحدث/العطل"
                     action_col = "الإجراء التصحيحي"
@@ -976,7 +958,6 @@ def search_across_sheets(all_sheets):
                         mask_general = mask_general | df_filtered[action_col].astype(str).str.contains(general_search, case=False, na=False)
                     df_filtered = df_filtered[mask_general]
                 
-                # البحث بالفني
                 if technician_search:
                     tech_col = "تم بواسطة"
                     if tech_col in df_filtered.columns:
@@ -987,7 +968,6 @@ def search_across_sheets(all_sheets):
                     df_filtered["القسم"] = sheet_name
                     results.append(df_filtered)
             
-            # عرض النتائج (نفس الكود السابق)
             if results:
                 combined_results = pd.concat(results, ignore_index=True)
                 if "رابط الصورة" in combined_results.columns:
@@ -1038,7 +1018,6 @@ def search_across_sheets(all_sheets):
             else:
                 st.warning("لا توجد نتائج مطابقة للبحث")
     
-    # ================== قطع الغيار (يبقى كما هو مع استخدام search_term) ==================
     elif search_type == "قطع الغيار":
         spare_df = load_spare_parts()
         if spare_df.empty:
@@ -1048,7 +1027,6 @@ def search_across_sheets(all_sheets):
         if selected_section_filter != "جميع الأقسام":
             df_filtered = df_filtered[df_filtered["القسم"] == selected_section_filter]
         
-        # حقل البحث الخاص بقطع الغيار
         search_term = st.text_input("🔍 كلمة البحث (اسم القطعة، المقاس، القسم...):", key="search_term_spare")
         if search_term:
             search_columns = ["اسم القطعة", "المقاس", "قوه الشد", "مدة التوريد", "القسم", "رابط_الصورة"]
@@ -1066,14 +1044,12 @@ def search_across_sheets(all_sheets):
         else:
             st.warning("لا توجد نتائج")
 
-    # ================== الصيانة الوقائية (يبقى كما هو مع استخدام search_term) ==================
-    else:
+    else:  # الصيانة الوقائية
         maint_df = load_maintenance_tasks()
         if maint_df.empty:
             st.warning("لا توجد بيانات في الصيانة الوقائية")
             return
         
-        # بناء علاقة الماكينة -> القسم
         equipment_to_section = {}
         for sheet_name in allowed_sections:
             df_sheet = all_sheets[sheet_name]
@@ -1086,11 +1062,10 @@ def search_across_sheets(all_sheets):
             allowed_equipment = [eq for eq, sec in equipment_to_section.items() if sec == selected_section_filter]
             df_filtered = df_filtered[df_filtered["المعدة"].isin(allowed_equipment)]
         
-        # حقل البحث الخاص بالصيانة الوقائية
         search_term = st.text_input("🔍 كلمة البحث (المعدة، البند، الملاحظات...):", key="search_term_maintenance")
         if search_term:
-            search_columns = ["المعدة", "نوع_الصيانة", "اسم_البند", "ملاحظات", "قطع_غيار_مستخدمة_افتراضية", "رابط_الصورة"]
             mask = pd.Series([False] * len(df_filtered))
+            search_columns = ["المعدة", "اسم_البند", "ملاحظات"]
             for col in search_columns:
                 if col in df_filtered.columns:
                     mask = mask | df_filtered[col].astype(str).str.contains(search_term, case=False, na=False)
@@ -1098,12 +1073,15 @@ def search_across_sheets(all_sheets):
         
         if not df_filtered.empty:
             df_filtered["القسم"] = df_filtered["المعدة"].map(equipment_to_section).fillna("غير محدد")
+            if "التاريخ" in df_filtered.columns:
+                df_filtered = df_filtered.sort_values(by="التاريخ", ascending=True)
             st.success(f"تم العثور على {len(df_filtered)} مهمة صيانة")
             st.dataframe(df_filtered, use_container_width=True)
             excel_file = export_filtered_results_to_excel(df_filtered, "صيانة_وقائية")
             st.download_button("📥 تحميل النتائج", excel_file, f"maintenance_search_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         else:
             st.warning("لا توجد نتائج")
+
 # ------------------------------- دوال إدارة المعدات والأقسام -------------------------------
 def load_equipment_config():
     if not os.path.exists(EQUIPMENT_CONFIG_FILE):
@@ -1231,13 +1209,11 @@ def add_new_department(sheets_edit):
                 confirm = st.text_input("لتأكيد الحذف، اكتب اسم القسم هنا:", key="delete_confirm")
                 if confirm == selected_dept:
                     if st.button("🗑️ حذف القسم نهائياً", key="delete_department_btn", type="primary"):
-                        # 1. حذف قطع الغيار المرتبطة بهذا القسم
                         spare_df = load_spare_parts()
                         if not spare_df.empty:
                             spare_df = spare_df[spare_df["القسم"] != selected_dept]
                             sheets_edit[APP_CONFIG["SPARE_PARTS_SHEET"]] = spare_df
                             st.info(f"🗑️ تم حذف قطع الغيار التابعة للقسم '{selected_dept}'.")
-                        # 2. حذف القسم نفسه (الشيت)
                         del sheets_edit[selected_dept]
                         if save_and_push_to_github(sheets_edit, f"حذف قسم: {selected_dept}"):
                             log_activity("delete_section", f"تم حذف القسم '{selected_dept}' وقطع الغيار التابعة له")
@@ -1259,7 +1235,7 @@ def add_new_department(sheets_edit):
     else:
         st.info("لا توجد أقسام بعد")
     return sheets_edit
-    
+
 def add_new_machine(sheets_edit, sheet_name):
     st.markdown(f"### 🔧 إضافة ماكينة جديدة في قسم: {sheet_name}")
     df = sheets_edit[sheet_name]
@@ -1508,9 +1484,7 @@ def manage_spare_parts_tab(sheets_edit):
     st.info("هنا يمكنك إضافة وتعديل قطع الغيار المرتبطة بكل قسم. القطع المضافة للقسم 'عام' تكون متاحة لجميع الأقسام.")
     username = st.session_state.get("username")
     all_sheets = load_all_sheets()
-    # جلب الأقسام الحقيقية (بدون عام)
     real_sections = get_allowed_sections(all_sheets, username, "view")
-    # إضافة القسم العام إذا كان المستخدم لديه أي صلاحية (أو هو admin)
     allowed_sections = real_sections.copy()
     if real_sections or username == "admin":
         if APP_CONFIG["GENERAL_SECTION"] not in allowed_sections:
@@ -1519,7 +1493,6 @@ def manage_spare_parts_tab(sheets_edit):
         st.warning("⚠️ لا توجد أقسام مسموح لك بالوصول إليها.")
         return sheets_edit
     selected_section = st.selectbox("🏭 اختر القسم:", allowed_sections, key="spare_section")
-    # ... باقي الكود (بدون تغيير)
     spare_df = load_spare_parts()
     view_mode = st.radio("طريقة العرض:", ["جدول", "بطاقات مع الصور"], horizontal=True, key="spare_view_mode")
     st.subheader("📋 قائمة قطع الغيار")
@@ -1679,19 +1652,17 @@ def preventive_maintenance_tab(sheets_edit):
     st.info("إدارة بنود الصيانة الدورية. يتم حفظ البيانات تلقائياً في ملف Excel.")
     username = st.session_state.get("username")
     all_sheets = load_all_sheets()
-    # نستخدم الأقسام الحقيقية فقط (بدون عام)
     allowed_sections = get_allowed_sections(all_sheets, username, "view")
     if not allowed_sections:
         st.warning("⚠️ لا توجد أقسام مسموح لك بالوصول إليها.")
         return sheets_edit
     selected_section = st.selectbox("🏭 اختر القسم:", allowed_sections, key="pm_section")
-    df_section = sheets_edit[selected_section]   # الآن selected_section حقيقي دائماً
+    df_section = sheets_edit[selected_section]
     equipment_list = get_equipment_list_from_sheet(df_section)
     if not equipment_list:
         st.warning(f"⚠️ لا توجد ماكينات في قسم '{selected_section}'.")
         return sheets_edit
     selected_equipment = st.selectbox("🔧 اختر المعدة:", equipment_list, key="pm_equipment")
-    # باقي الكود كما هو...
     if APP_CONFIG["MAINTENANCE_SHEET"] in sheets_edit:
         tasks_df = sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]].copy()
     else:
@@ -1980,8 +1951,6 @@ with st.sidebar:
             st.rerun()
         if st.button("🚪 تسجيل الخروج"):
             logout_action()
-        # إدارة الصلاحيات (للمدير فقط) - تم حذفها من الكود للاختصار، يمكن إضافتها
-        # ولكنها طويلة وقد تم تضمينها سابقاً في الكود الأصلي.
 
 # ------------------------------- تحميل البيانات الرئيسية -------------------------------
 all_sheets = load_all_sheets()
@@ -1990,9 +1959,13 @@ st.title(f"{APP_CONFIG['APP_ICON']} {APP_CONFIG['APP_TITLE']}")
 user_role = st.session_state.get("user_role", "viewer")
 user_permissions = st.session_state.get("user_permissions", ["view"])
 can_edit = (user_role == "admin" or user_role == "editor" or "edit" in user_permissions)
+
+# بناء قائمة التبويبات
 tabs_list = ["🔍 بحث متقدم", "📊 تحليل الأعطال", "🔔 الإشعارات"]
 if can_edit:
     tabs_list.append("🛠 تعديل وإدارة البيانات")
+# أضف تبويب الدعم الفني في النهاية
+tabs_list.append("📞 الدعم الفني")
 tabs = st.tabs(tabs_list)
 
 with tabs[0]:
@@ -2003,7 +1976,6 @@ with tabs[1]:
 
 with tabs[2]:
     st.header("🔔 الإشعارات")
-    # عرض سجل النشاطات للمدير فقط
     if st.session_state.get("username") == "admin":
         st.subheader("📋 آخر النشاطات")
         activity_log = load_activity_log()
@@ -2057,3 +2029,63 @@ with tabs[2]:
 if can_edit and len(tabs) > 3:
     with tabs[3]:
         sheets_edit = manage_data_edit(sheets_edit)
+
+# ------------------------------- تبويب الدعم الفني (الأخير) -------------------------------
+with tabs[-1]:
+    st.header("📞 الدعم الفني")
+    st.markdown("### تم تنفيذ هذا السيستم بواسطه **م. محمد عبدالله** – رئيس قسم")
+    st.markdown("---")
+    
+    support_config = load_support_config()
+    current_image_url = support_config.get("image_url", "")
+    current_youtube_link = support_config.get("youtube_link", "")
+    
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        st.subheader("🖼️ صورة المطور")
+        if current_image_url and current_image_url.strip():
+            try:
+                st.image(current_image_url, use_container_width=True)
+            except:
+                st.warning("⚠️ تعذر عرض الصورة المحفوظة")
+        else:
+            st.info("📷 لا توجد صورة مسجلة")
+    
+    with col2:
+        st.subheader("🔗 روابط التواصل")
+        if current_youtube_link:
+            st.markdown(f"[📺 قناة اليوتيوب الرسمية]({current_youtube_link})")
+            st.caption(f"الرابط: {current_youtube_link}")
+        else:
+            st.info("لم يتم إضافة رابط يوتيوب بعد")
+        st.markdown("---")
+        st.markdown("📧 للتواصل والدعم: `01274424062`")
+    
+    if st.session_state.get("username") == "admin":
+        st.markdown("---")
+        st.subheader("⚙️ إعدادات الدعم الفني (للمدير فقط)")
+        with st.expander("✏️ تعديل الصورة والرابط"):
+            new_youtube = st.text_input("رابط صفحة اليوتيوب:", value=current_youtube_link, placeholder="https://www.youtube.com/...")
+            uploaded_support_img = st.file_uploader("رفع صورة جديدة للمطور:", type=APP_CONFIG["ALLOWED_IMAGE_TYPES"], key="support_img")
+            if st.button("💾 حفظ التغييرات"):
+                updated = False
+                new_image_url = current_image_url
+                if uploaded_support_img is not None:
+                    img_url = upload_image_to_github(uploaded_support_img, "support", "developer")
+                    if img_url:
+                        new_image_url = img_url
+                        st.success("✅ تم رفع الصورة بنجاح")
+                        updated = True
+                    else:
+                        st.error("❌ فشل رفع الصورة")
+                if new_youtube != current_youtube_link:
+                    updated = True
+                if updated:
+                    new_config = {"image_url": new_image_url, "youtube_link": new_youtube}
+                    save_support_config(new_config)
+                    st.success("✅ تم تحديث إعدادات الدعم الفني")
+                    st.rerun()
+                else:
+                    st.info("لم يتم إجراء أي تغييرات")
+    else:
+        st.caption("🔒 فقط المدير يمكنه تعديل الصورة والرابط")
