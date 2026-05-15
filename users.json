@@ -24,8 +24,8 @@
     "sections_permissions": {
       "تمشيط": ["view", "edit", "add_event", "manage_machines"],
       "ملفات": ["view", "edit", "add_event", "manage_machines"],
-      "سحب1": ["view", "edit", "add_event", "manage_machines"],
-      "سحب2": ["view", "edit", "add_event", "manage_machines"]  
+      "سحب اول": ["view", "edit", "add_event", "manage_machines"],
+      "سحب ثاني": ["view", "edit", "add_event", "manage_machines"]  
     }
   },
   "مشرف_البرم": {
