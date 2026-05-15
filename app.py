@@ -2051,32 +2051,23 @@ with tabs[-1]:
     
     st.markdown("---")
     
-    # 5. إدارة الصورة (مرة واحدة فقط بعد كل حذف)
+    # 5. رفع الصورة (مرة واحدة فقط، ثم لا يمكن تغييرها أبداً)
     support_config = load_support_config()
     current_image_url = support_config.get("image_url", "")
     
     st.subheader("🖼️ صورة المطور")
     
     if current_image_url and current_image_url.strip():
-        # توجد صورة حالية -> عرضها
+        # الصورة موجودة مسبقاً -> عرضها فقط (بدون أي خيار للحذف أو التغيير)
         try:
             st.image(current_image_url, use_container_width=True)
-            st.caption("✅ الصورة الحالية")
+            st.caption("✅ تم رفع الصورة (لا يمكن تغييرها بعد الآن)")
         except:
             st.warning("⚠️ تعذر عرض الصورة المحفوظة")
-        
-        # إذا كان المستخدم مديراً، نعطيه خيار حذف الصورة لرفع أخرى
-        if st.session_state.get("username") == "admin":
-            if st.button("🗑️ حذف الصورة الحالية ورفع صورة جديدة"):
-                # مسح رابط الصورة من الإعدادات
-                support_config["image_url"] = ""
-                save_support_config(support_config)
-                st.success("✅ تم حذف الصورة. يمكنك الآن رفع صورة جديدة (مرة واحدة فقط).")
-                st.rerun()
     else:
         # لا توجد صورة -> السماح بالرفع مرة واحدة فقط (للمدير فقط)
         if st.session_state.get("username") == "admin":
-            st.info("📷 لم يتم رفع صورة المطور بعد. يمكنك رفعها الآن (مرة واحدة فقط، ولن يمكن تغييرها إلا بعد حذفها).")
+            st.info("📷 لم يتم رفع صورة المطور بعد. يمكنك رفعها الآن (مرة واحدة فقط، ولن يمكن تغييرها لاحقاً).")
             uploaded_img = st.file_uploader("رفع صورة للمطور (jpg, png, ...)", type=APP_CONFIG["ALLOWED_IMAGE_TYPES"], key="support_img_upload_once")
             if uploaded_img is not None:
                 with st.spinner("جاري رفع الصورة..."):
@@ -2084,7 +2075,7 @@ with tabs[-1]:
                     if image_url:
                         support_config["image_url"] = image_url
                         save_support_config(support_config)
-                        st.success("✅ تم رفع الصورة بنجاح! لن يظهر خيار الرفع مرة أخرى إلا بعد حذف الصورة.")
+                        st.success("✅ تم رفع الصورة بنجاح! لن يظهر خيار الرفع مرة أخرى.")
                         st.rerun()
                     else:
                         st.error("❌ فشل رفع الصورة، حاول مرة أخرى.")
