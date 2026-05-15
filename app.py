@@ -2055,13 +2055,13 @@ with tabs[-1]:
     support_config = load_support_config()
     current_image_url = support_config.get("image_url", "")
     
-    st.subheader("🖼️ ")
+    st.subheader("🖼️ صورة المطور")
     
-        if current_image_url and current_image_url.strip():
+    if current_image_url and current_image_url.strip():
         # توجد صورة حالية -> عرضها
         try:
             st.image(current_image_url, use_container_width=True)
-            st.caption("✅")
+            st.caption("✅ الصورة الحالية")
         except:
             st.warning("⚠️ تعذر عرض الصورة المحفوظة")
         
