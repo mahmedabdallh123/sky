@@ -1268,7 +1268,7 @@ def add_new_machine(sheets_edit, sheet_name):
             st.warning("يرجى إدخال اسم الماكينة")
     return sheets_edit
 
-def manage_machines(sheets_edit, sheet_name):
+def manage_machines(sheets_edit, sheet_name, unique_suffix=""):
     st.markdown(f"### 🔧 إدارة الماكينات في قسم: {sheet_name}")
     df = sheets_edit[sheet_name]
     equipment_list = get_equipment_list_from_sheet(df)
@@ -1279,10 +1279,12 @@ def manage_machines(sheets_edit, sheet_name):
     else:
         st.info("لا توجد ماكينات مسجلة في هذا القسم بعد")
     st.markdown("---")
-    col1, col2 = st.columns(2)
-    with col1:
-        new_machine = st.text_input("➕ اسم الماكينة الجديدة:", key=f"new_machine_{sheet_name}")
-        if st.button("➕ إضافة ماكينة", key=f"add_machine_{sheet_name}"):
+    
+    # إضافة ماكينة جديدة
+    with st.form(key=f"add_machine_form_{sheet_name}_{unique_suffix}"):
+        new_machine = st.text_input("➕ اسم الماكينة الجديدة:", key=f"new_machine_input_{sheet_name}_{unique_suffix}")
+        submitted_add = st.form_submit_button("➕ إضافة ماكينة")
+        if submitted_add:
             if new_machine:
                 success, msg = add_equipment_to_sheet_data(sheets_edit, sheet_name, new_machine)
                 if success:
@@ -1296,13 +1298,16 @@ def manage_machines(sheets_edit, sheet_name):
                     st.error(msg)
             else:
                 st.warning("يرجى إدخال اسم الماكينة")
-    with col2:
-        if equipment_list:
-            st.markdown("#### 🗑️ حذف ماكينة")
-            if st.session_state.get("username") == "admin":
-                machine_to_delete = st.selectbox("اختر الماكينة للحذف:", equipment_list, key=f"delete_machine_{sheet_name}")
+    
+    # حذف ماكينة
+    if equipment_list:
+        st.markdown("#### 🗑️ حذف ماكينة")
+        if st.session_state.get("username") == "admin":
+            with st.form(key=f"delete_machine_form_{sheet_name}_{unique_suffix}"):
+                machine_to_delete = st.selectbox("اختر الماكينة للحذف:", equipment_list, key=f"delete_machine_select_{sheet_name}_{unique_suffix}")
                 st.warning("⚠️ تحذير: حذف الماكينة سيؤدي إلى حذف جميع سجلات الأعطال المرتبطة بها نهائياً!")
-                if st.button("🗑️ حذف الماكينة نهائياً", key=f"delete_machine_btn_{sheet_name}"):
+                submitted_del = st.form_submit_button("🗑️ حذف الماكينة نهائياً")
+                if submitted_del:
                     success, msg = remove_equipment_from_sheet_data(sheets_edit, sheet_name, machine_to_delete)
                     if success:
                         if save_and_push_to_github(sheets_edit, f"حذف ماكينة: {machine_to_delete} من قسم {sheet_name}"):
@@ -1313,11 +1318,10 @@ def manage_machines(sheets_edit, sheet_name):
                             st.error("فشل الحفظ")
                     else:
                         st.error(msg)
-            else:
-                st.info("🔒 حذف الماكينات مقيد بصلاحيات المدير (admin). تواصل مع مدير النظام.")
         else:
-            st.info("لا توجد ماكينات لحذفها")
-
+            st.info("🔒 حذف الماكينات مقيد بصلاحيات المدير (admin). تواصل مع مدير النظام.")
+    else:
+        st.info("لا توجد ماكينات لحذفها")
 def add_new_event(sheets_edit, sheet_name):
     st.markdown(f"### 📝 إضافة حدث عطل جديد في قسم: {sheet_name}")
     df = sheets_edit[sheet_name]
@@ -1921,7 +1925,7 @@ def manage_data_edit(sheets_edit):
     with tabs_edit[1]:
         if sheets_edit:
             sheet_name = st.selectbox("اختر القسم:", [name for name in sheets_edit.keys() if name not in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]], key="manage_machines_sheet_edit")
-            manage_machines(sheets_edit, sheet_name)
+            manage_machines(sheets_edit, sheet_name, unique_suffix=f"edit_{sheet_name}")
     with tabs_edit[2]:
         sheets_edit = add_new_department(sheets_edit)
     with tabs_edit[3]:
@@ -2088,7 +2092,7 @@ if can_manage_machines:
                     allowed_for_machines.append(sheet_name)
             if allowed_for_machines:
                 sheet_name = st.selectbox("اختر القسم:", allowed_for_machines, key="manage_machines_sheet_main")  # مفتاح فريد
-                manage_machines(sheets_edit, sheet_name)
+                manage_machines(sheets_edit, sheet_name, unique_suffix="main")
             else:
                 st.warning("لا توجد أقسام مسموح لك بإدارة الماكينات فيها.")
         else:
