@@ -1891,7 +1891,8 @@ def manage_data_edit(sheets_edit):
         sheets_edit[APP_CONFIG["SPARE_PARTS_SHEET"]] = load_spare_parts()
     if APP_CONFIG["MAINTENANCE_SHEET"] not in sheets_edit:
         sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = load_maintenance_tasks()
-    tab_names = ["📋 عرض الأقسام", "📝 إضافة حدث عطل", "🔧 إدارة الماكينات", "➕ إضافة قسم جديد", "📦 قطع الغيار", "🛠 الصيانة الوقائية"]
+    # إزالة تبويب إضافة حدث عطل لأنه أصبح مستقلاً
+    tab_names = ["📋 عرض الأقسام", "🔧 إدارة الماكينات", "➕ إضافة قسم جديد", "📦 قطع الغيار", "🛠 الصيانة الوقائية"]
     tabs_edit = st.tabs(tab_names)
     with tabs_edit[0]:
         st.subheader("جميع الأقسام")
@@ -1915,17 +1916,13 @@ def manage_data_edit(sheets_edit):
                 st.info("لا توجد أقسام بعد")
     with tabs_edit[1]:
         if sheets_edit:
-            sheet_name = st.selectbox("اختر القسم:", [name for name in sheets_edit.keys() if name not in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]], key="add_event_sheet")
-            sheets_edit = add_new_event(sheets_edit, sheet_name)
-    with tabs_edit[2]:
-        if sheets_edit:
-            sheet_name = st.selectbox("اختر القسم:", [name for name in sheets_edit.keys() if name not in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]], key="manage_machines_sheet")
+            sheet_name = st.selectbox("اختر القسم:", [name for name in sheets_edit.keys() if name not in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]], key="manage_machines_sheet_edit")
             manage_machines(sheets_edit, sheet_name)
-    with tabs_edit[3]:
+    with tabs_edit[2]:
         sheets_edit = add_new_department(sheets_edit)
-    with tabs_edit[4]:
+    with tabs_edit[3]:
         sheets_edit = manage_spare_parts_tab(sheets_edit)
-    with tabs_edit[5]:
+    with tabs_edit[4]:
         sheets_edit = preventive_maintenance_tab(sheets_edit)
     return sheets_edit
 
@@ -1967,7 +1964,6 @@ st.title(f"{APP_CONFIG['APP_ICON']} {APP_CONFIG['APP_TITLE']}")
 user_role = st.session_state.get("user_role", "viewer")
 username = st.session_state.get("username", "")
 
-# دوال مساعدة للتحقق من الصلاحيات على أي قسم
 def user_can(permission_type):
     if username == "admin":
         return True
@@ -1982,7 +1978,7 @@ def user_can(permission_type):
 
 can_add_event = user_can("add_event")
 can_manage_machines = user_can("manage_machines")
-can_edit_data = user_can("edit")   # للتحكم في تبويب التعديل الكامل
+can_edit_data = user_can("edit")
 
 tabs_list = ["🔍 بحث متقدم", "📊 تحليل الأعطال", "🔔 الإشعارات"]
 if can_add_event:
@@ -2057,9 +2053,10 @@ with tabs[2]:
 
 # ------------------------------- تبويب إضافة حدث عطل -------------------------------
 if can_add_event:
-    with tabs[3]:
+    # حساب الفهرس المناسب: بعد أول 3 تبويبات ثابتة
+    idx_add = 3
+    with tabs[idx_add]:
         if sheets_edit:
-            # عرض أقسام مسموح للمستخدم إضافة حدث فيها
             allowed_for_add = []
             for sheet_name in sheets_edit.keys():
                 if sheet_name in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]:
@@ -2067,7 +2064,7 @@ if can_add_event:
                 if has_section_permission(username, sheet_name, "add_event"):
                     allowed_for_add.append(sheet_name)
             if allowed_for_add:
-                sheet_name = st.selectbox("اختر القسم:", allowed_for_add, key="add_event_sheet")
+                sheet_name = st.selectbox("اختر القسم:", allowed_for_add, key="add_event_sheet_main")  # مفتاح فريد
                 sheets_edit = add_new_event(sheets_edit, sheet_name)
             else:
                 st.warning("لا توجد أقسام مسموح لك بإضافة أحداث فيها.")
@@ -2086,7 +2083,7 @@ if can_manage_machines:
                 if has_section_permission(username, sheet_name, "manage_machines"):
                     allowed_for_machines.append(sheet_name)
             if allowed_for_machines:
-                sheet_name = st.selectbox("اختر القسم:", allowed_for_machines, key="manage_machines_sheet")
+                sheet_name = st.selectbox("اختر القسم:", allowed_for_machines, key="manage_machines_sheet_main")  # مفتاح فريد
                 manage_machines(sheets_edit, sheet_name)
             else:
                 st.warning("لا توجد أقسام مسموح لك بإدارة الماكينات فيها.")
