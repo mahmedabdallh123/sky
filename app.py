@@ -29,7 +29,6 @@ APP_CONFIG = {
     "SPARE_PARTS_SHEET": "قطع_الغيار",
     "SPARE_PARTS_COLUMNS": ["اسم القطعة", "المقاس", "قوه الشد", "الرصيد الموجود", "مدة التوريد", "ضرورية", "القسم", "رابط_الصورة"],
     "MAINTENANCE_SHEET": "صيانة_وقائية",
-    "SPARE_PARTS_COLUMNS": ["اسم القطعة", "المقاس", "قوه الشد", "الرصيد الموجود", "مدة التوريد", "ضرورية", "القسم", "رابط_الصورة", "حد_الإنذار"],
     "MAINTENANCE_COLUMNS": ["المعدة", "نوع_الصيانة", "اسم_البند", "الفترة_بالأيام", "آخر_تنفيذ", "التاريخ_التالي", "ملاحظات", "قطع_غيار_مستخدمة_افتراضية", "رابط_الصورة"],
     "GENERAL_SECTION": "عام"
 }
@@ -59,7 +58,7 @@ SESSION_DURATION = timedelta(minutes=APP_CONFIG["SESSION_DURATION_MINUTES"])
 MAX_ACTIVE_USERS = APP_CONFIG["MAX_ACTIVE_USERS"]
 IMAGES_FOLDER = APP_CONFIG["IMAGES_FOLDER"]
 EQUIPMENT_CONFIG_FILE = "equipment_config.json"
-SUPPORT_CONFIG_FILE = "support_config.json"   # جديد: إعدادات الدعم الفني
+SUPPORT_CONFIG_FILE = "support_config.json"
 
 GITHUB_EXCEL_URL = f"https://github.com/{APP_CONFIG['REPO_NAME'].split('/')[0]}/{APP_CONFIG['REPO_NAME'].split('/')[1]}/raw/{APP_CONFIG['BRANCH']}/{APP_CONFIG['FILE_PATH']}"
 GITHUB_USERS_URL = "https://raw.githubusercontent.com/mahmedabdallh123/sky/refs/heads/main/users.json"
@@ -108,9 +107,8 @@ def get_image_component(image_url, caption=""):
         st.warning(f"⚠️ تعذر عرض الصورة: {image_url}")
         return None
 
-# ------------------------------- دوال إعدادات الدعم الفني (جديدة) -------------------------------
+# ------------------------------- دوال إعدادات الدعم الفني -------------------------------
 def load_support_config():
-    """تحميل إعدادات الدعم الفني (رابط الصورة، رابط اليوتيوب)"""
     default_config = {"image_url": "", "youtube_link": ""}
     if GITHUB_AVAILABLE:
         try:
@@ -132,7 +130,6 @@ def load_support_config():
     return default_config
 
 def save_support_config(config):
-    """حفظ إعدادات الدعم الفني على GitHub والمحلي"""
     config_str = json.dumps(config, indent=2, ensure_ascii=False)
     if GITHUB_AVAILABLE:
         try:
@@ -259,9 +256,11 @@ def load_activity_log():
 
 # ------------------------------- دوال الصيانة الوقائية -------------------------------
 def load_maintenance_tasks():
+    """تحميل مهام الصيانة الوقائية مع معالجة خطأ عدم وجود الورقة"""
     if not os.path.exists(APP_CONFIG["LOCAL_FILE"]):
         return pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
     try:
+        # محاولة قراءة الورقة المحددة
         df = pd.read_excel(APP_CONFIG["LOCAL_FILE"], sheet_name=APP_CONFIG["MAINTENANCE_SHEET"])
         df.columns = df.columns.astype(str).str.strip()
         for col in APP_CONFIG["MAINTENANCE_COLUMNS"]:
@@ -276,7 +275,8 @@ def load_maintenance_tasks():
             df["الفترة_بالأيام"] = pd.to_numeric(df["الفترة_بالأيام"], errors='coerce').fillna(0)
         return df
     except Exception as e:
-        st.error(f"خطأ في تحميل مهام الصيانة: {e}")
+        # إذا لم توجد الورقة، نرجع DataFrame فارغ بدون رسالة خطأ
+        # (الخطأ يحدث فقط عند محاولة القراءة، نتعامل معه بهدوء)
         return pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
 
 def get_tasks_for_equipment(equipment_name):
@@ -286,9 +286,10 @@ def get_tasks_for_equipment(equipment_name):
     return df[df["المعدة"] == equipment_name]
 
 def add_maintenance_task(sheets_edit, equipment, task_name, period_hours, start_date=None, notes="", default_spare="", image_url=None):
-    df = sheets_edit.get(APP_CONFIG["MAINTENANCE_SHEET"])
-    if df is None:
-        df = pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
+    # التأكد من وجود الورقة في sheets_edit
+    if APP_CONFIG["MAINTENANCE_SHEET"] not in sheets_edit:
+        sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
+    df = sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]]
     if start_date is None:
         start_date = datetime.now().date()
     period_days = period_hours / 24.0
@@ -314,7 +315,6 @@ def get_upcoming_maintenance(days_ahead=3):
 
 # ------------------------------- دوال تحليل الأعطال المتقدمة -------------------------------
 def flexible_date_parser(date_series):
-    """تحويل سلسلة من التواريخ بتنسيقات متعددة إلى datetime، مع تجاهل الأخطاء."""
     def parse_single(val):
         if pd.isna(val) or val == "":
             return pd.NaT
@@ -346,7 +346,6 @@ def flexible_date_parser(date_series):
     return date_series.apply(parse_single)
 
 def analyze_time_between_corrections(df, filter_text=None):
-    """تحليل المدة الزمنية بين الإجراءات التصحيحية المتكررة (حسب كلمة البحث)"""
     if df is None or df.empty:
         return pd.DataFrame()
     data = df.copy()
@@ -392,12 +391,14 @@ def failures_analysis_tab(all_sheets):
         st.warning("لا توجد بيانات للتحليل")
         return
     
-    all_section_names = [name for name in all_sheets.keys() if name not in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]]
-    if not all_section_names:
-        st.warning("لا توجد أقسام متاحة للتحليل")
+    username = st.session_state.get("username")
+    allowed_sections = get_allowed_sections(all_sheets, username, "view")
+    
+    if not allowed_sections:
+        st.warning("لا توجد أقسام مسموح لك بالوصول إليها للتحليل")
         return
     
-    selected_section = st.selectbox("🏭 اختر القسم:", all_section_names, key="analysis_section")
+    selected_section = st.selectbox("🏭 اختر القسم:", allowed_sections, key="analysis_section")
     df = all_sheets[selected_section].copy()
     
     if "المعدة" not in df.columns:
@@ -494,6 +495,7 @@ def failures_analysis_tab(all_sheets):
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
+# ------------------------------- دوال المستخدمين والصلاحيات -------------------------------
 def download_users_from_github():
     try:
         response = requests.get(GITHUB_USERS_URL, timeout=10)
@@ -693,7 +695,6 @@ def has_section_permission(username, section_name, required_permission="view"):
     return required_permission in section_perms
 
 def get_allowed_sections(all_sheets, username, required_permission="view"):
-    """إرجاع قائمة الأقسام الحقيقية التي يسمح للمستخدم بالوصول إليها (بدون إضافة 'عام')"""
     allowed = []
     for sheet_name in all_sheets.keys():
         if sheet_name in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]:
@@ -756,6 +757,7 @@ def save_excel_locally(sheets_dict):
         if "temp_spare_parts_df" in st.session_state:
             sheets_dict[APP_CONFIG["SPARE_PARTS_SHEET"]] = st.session_state.temp_spare_parts_df
             del st.session_state.temp_spare_parts_df
+        # التأكد من وجود ورقة الصيانة الوقائية إذا كانت فارغة ولكن موجودة في sheets_dict
         if APP_CONFIG["MAINTENANCE_SHEET"] not in sheets_dict:
             sheets_dict[APP_CONFIG["MAINTENANCE_SHEET"]] = load_maintenance_tasks()
         with pd.ExcelWriter(APP_CONFIG["LOCAL_FILE"], engine="openpyxl") as writer:
@@ -1264,7 +1266,7 @@ def add_new_machine(sheets_edit, sheet_name):
             st.warning("يرجى إدخال اسم الماكينة")
     return sheets_edit
 
-def manage_machines(sheets_edit, sheet_name):
+def manage_machines(sheets_edit, sheet_name, unique_suffix=""):
     st.markdown(f"### 🔧 إدارة الماكينات في قسم: {sheet_name}")
     df = sheets_edit[sheet_name]
     equipment_list = get_equipment_list_from_sheet(df)
@@ -1275,10 +1277,12 @@ def manage_machines(sheets_edit, sheet_name):
     else:
         st.info("لا توجد ماكينات مسجلة في هذا القسم بعد")
     st.markdown("---")
-    col1, col2 = st.columns(2)
-    with col1:
-        new_machine = st.text_input("➕ اسم الماكينة الجديدة:", key=f"new_machine_{sheet_name}")
-        if st.button("➕ إضافة ماكينة", key=f"add_machine_{sheet_name}"):
+    
+    # إضافة ماكينة جديدة
+    with st.form(key=f"add_machine_form_{sheet_name}_{unique_suffix}"):
+        new_machine = st.text_input("➕ اسم الماكينة الجديدة:", key=f"new_machine_input_{sheet_name}_{unique_suffix}")
+        submitted_add = st.form_submit_button("➕ إضافة ماكينة")
+        if submitted_add:
             if new_machine:
                 success, msg = add_equipment_to_sheet_data(sheets_edit, sheet_name, new_machine)
                 if success:
@@ -1292,13 +1296,16 @@ def manage_machines(sheets_edit, sheet_name):
                     st.error(msg)
             else:
                 st.warning("يرجى إدخال اسم الماكينة")
-    with col2:
-        if equipment_list:
-            st.markdown("#### 🗑️ حذف ماكينة")
-            if st.session_state.get("username") == "admin":
-                machine_to_delete = st.selectbox("اختر الماكينة للحذف:", equipment_list, key=f"delete_machine_{sheet_name}")
+    
+    # حذف ماكينة
+    if equipment_list:
+        st.markdown("#### 🗑️ حذف ماكينة")
+        if st.session_state.get("username") == "admin":
+            with st.form(key=f"delete_machine_form_{sheet_name}_{unique_suffix}"):
+                machine_to_delete = st.selectbox("اختر الماكينة للحذف:", equipment_list, key=f"delete_machine_select_{sheet_name}_{unique_suffix}")
                 st.warning("⚠️ تحذير: حذف الماكينة سيؤدي إلى حذف جميع سجلات الأعطال المرتبطة بها نهائياً!")
-                if st.button("🗑️ حذف الماكينة نهائياً", key=f"delete_machine_btn_{sheet_name}"):
+                submitted_del = st.form_submit_button("🗑️ حذف الماكينة نهائياً")
+                if submitted_del:
                     success, msg = remove_equipment_from_sheet_data(sheets_edit, sheet_name, machine_to_delete)
                     if success:
                         if save_and_push_to_github(sheets_edit, f"حذف ماكينة: {machine_to_delete} من قسم {sheet_name}"):
@@ -1309,10 +1316,10 @@ def manage_machines(sheets_edit, sheet_name):
                             st.error("فشل الحفظ")
                     else:
                         st.error(msg)
-            else:
-                st.info("🔒 حذف الماكينات مقيد بصلاحيات المدير (admin). تواصل مع مدير النظام.")
         else:
-            st.info("لا توجد ماكينات لحذفها")
+            st.info("🔒 حذف الماكينات مقيد بصلاحيات المدير (admin). تواصل مع مدير النظام.")
+    else:
+        st.info("لا توجد ماكينات لحذفها")
 
 def add_new_event(sheets_edit, sheet_name):
     st.markdown(f"### 📝 إضافة حدث عطل جديد في قسم: {sheet_name}")
@@ -1421,8 +1428,11 @@ def add_new_event(sheets_edit, sheet_name):
 
 # ------------------------------- دوال مساعدة للصيانة الوقائية -------------------------------
 def execute_maintenance_with_date(sheets_edit, equipment_name, task_name, execution_date, performed_by, used_spare_part="", used_quantity=1, image_url=None):
-    df = sheets_edit.get(APP_CONFIG["MAINTENANCE_SHEET"])
-    if df is None:
+    # التأكد من وجود ورقة الصيانة الوقائية
+    if APP_CONFIG["MAINTENANCE_SHEET"] not in sheets_edit:
+        sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
+    df = sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]]
+    if df.empty:
         return False, "لا توجد مهام صيانة"
     mask = (df["المعدة"] == equipment_name) & (df["اسم_البند"] == task_name)
     if not mask.any():
@@ -1891,7 +1901,8 @@ def manage_data_edit(sheets_edit):
         sheets_edit[APP_CONFIG["SPARE_PARTS_SHEET"]] = load_spare_parts()
     if APP_CONFIG["MAINTENANCE_SHEET"] not in sheets_edit:
         sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = load_maintenance_tasks()
-    tab_names = ["📋 عرض الأقسام", "📝 إضافة حدث عطل", "🔧 إدارة الماكينات", "➕ إضافة قسم جديد", "📦 قطع الغيار", "🛠 الصيانة الوقائية"]
+    # إزالة تبويب إضافة حدث عطل لأنه أصبح مستقلاً
+    tab_names = ["📋 عرض الأقسام", "🔧 إدارة الماكينات", "➕ إضافة قسم جديد", "📦 قطع الغيار", "🛠 الصيانة الوقائية"]
     tabs_edit = st.tabs(tab_names)
     with tabs_edit[0]:
         st.subheader("جميع الأقسام")
@@ -1915,17 +1926,13 @@ def manage_data_edit(sheets_edit):
                 st.info("لا توجد أقسام بعد")
     with tabs_edit[1]:
         if sheets_edit:
-            sheet_name = st.selectbox("اختر القسم:", [name for name in sheets_edit.keys() if name not in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]], key="add_event_sheet")
-            sheets_edit = add_new_event(sheets_edit, sheet_name)
+            sheet_name = st.selectbox("اختر القسم:", [name for name in sheets_edit.keys() if name not in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]], key="manage_machines_sheet_edit")
+            manage_machines(sheets_edit, sheet_name, unique_suffix=f"edit_{sheet_name}")
     with tabs_edit[2]:
-        if sheets_edit:
-            sheet_name = st.selectbox("اختر القسم:", [name for name in sheets_edit.keys() if name not in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]], key="manage_machines_sheet")
-            manage_machines(sheets_edit, sheet_name)
-    with tabs_edit[3]:
         sheets_edit = add_new_department(sheets_edit)
-    with tabs_edit[4]:
+    with tabs_edit[3]:
         sheets_edit = manage_spare_parts_tab(sheets_edit)
-    with tabs_edit[5]:
+    with tabs_edit[4]:
         sheets_edit = preventive_maintenance_tab(sheets_edit)
     return sheets_edit
 
@@ -1960,20 +1967,48 @@ user_role = st.session_state.get("user_role", "viewer")
 user_permissions = st.session_state.get("user_permissions", ["view"])
 can_edit = (user_role == "admin" or user_role == "editor" or "edit" in user_permissions)
 
-# بناء قائمة التبويبات
+# ------------------------------- بناء قائمة التبويبات حسب الصلاحيات -------------------------------
+all_sheets = load_all_sheets()
+sheets_edit = load_sheets_for_edit()
+st.title(f"{APP_CONFIG['APP_ICON']} {APP_CONFIG['APP_TITLE']}")
+user_role = st.session_state.get("user_role", "viewer")
+username = st.session_state.get("username", "")
+
+def user_can(permission_type):
+    if username == "admin":
+        return True
+    perms = get_user_permissions(username)
+    if perms.get("all_sections", False):
+        return True
+    sections_perms = perms.get("sections_permissions", {})
+    for perms_list in sections_perms.values():
+        if permission_type in perms_list:
+            return True
+    return False
+
+can_add_event = user_can("add_event")
+can_manage_machines = user_can("manage_machines")
+can_edit_data = user_can("edit")
+
 tabs_list = ["🔍 بحث متقدم", "📊 تحليل الأعطال", "🔔 الإشعارات"]
-if can_edit:
+if can_add_event:
+    tabs_list.append("➕ إضافة حدث عطل")
+if can_manage_machines:
+    tabs_list.append("🔧 إدارة الماكينات")
+if can_edit_data:
     tabs_list.append("🛠 تعديل وإدارة البيانات")
-# أضف تبويب الدعم الفني في النهاية
 tabs_list.append("📞 الدعم الفني")
 tabs = st.tabs(tabs_list)
 
+# ------------------------------- تبويب البحث -------------------------------
 with tabs[0]:
     search_across_sheets(all_sheets)
 
+# ------------------------------- تبويب تحليل الأعطال -------------------------------
 with tabs[1]:
     failures_analysis_tab(all_sheets)
 
+# ------------------------------- تبويب الإشعارات -------------------------------
 with tabs[2]:
     st.header("🔔 الإشعارات")
     if st.session_state.get("username") == "admin":
@@ -2026,46 +2061,74 @@ with tabs[2]:
         else:
             st.info("✅ لا توجد صيانات قادمة")
 
-if can_edit and len(tabs) > 3:
-    with tabs[3]:
+# ------------------------------- تبويب إضافة حدث عطل -------------------------------
+if can_add_event:
+    # حساب الفهرس المناسب: بعد أول 3 تبويبات ثابتة
+    idx_add = 3
+    with tabs[idx_add]:
+        if sheets_edit:
+            allowed_for_add = []
+            for sheet_name in sheets_edit.keys():
+                if sheet_name in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]:
+                    continue
+                if has_section_permission(username, sheet_name, "add_event"):
+                    allowed_for_add.append(sheet_name)
+            if allowed_for_add:
+                sheet_name = st.selectbox("اختر القسم:", allowed_for_add, key="add_event_sheet_main")  # مفتاح فريد
+                sheets_edit = add_new_event(sheets_edit, sheet_name)
+            else:
+                st.warning("لا توجد أقسام مسموح لك بإضافة أحداث فيها.")
+        else:
+            st.warning("لا توجد بيانات")
+
+# ------------------------------- تبويب إدارة الماكينات -------------------------------
+if can_manage_machines:
+    idx_manage = 3 + (1 if can_add_event else 0)
+    with tabs[idx_manage]:
+        if sheets_edit:
+            allowed_for_machines = []
+            for sheet_name in sheets_edit.keys():
+                if sheet_name in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]:
+                    continue
+                if has_section_permission(username, sheet_name, "manage_machines"):
+                    allowed_for_machines.append(sheet_name)
+            if allowed_for_machines:
+                sheet_name = st.selectbox("اختر القسم:", allowed_for_machines, key="manage_machines_sheet_main")  # مفتاح فريد
+                manage_machines(sheets_edit, sheet_name, unique_suffix="main")
+            else:
+                st.warning("لا توجد أقسام مسموح لك بإدارة الماكينات فيها.")
+        else:
+            st.warning("لا توجد بيانات")
+
+# ------------------------------- تبويب تعديل وإدارة البيانات الكاملة -------------------------------
+if can_edit_data:
+    idx_edit = 3 + (1 if can_add_event else 0) + (1 if can_manage_machines else 0)
+    with tabs[idx_edit]:
         sheets_edit = manage_data_edit(sheets_edit)
 
-# ------------------------------- تبويب الدعم الفني (الأخير) -------------------------------
-with tabs[-1]:
+# ------------------------------- تبويب الدعم الفني -------------------------------
+idx_support = len(tabs_list) - 1
+with tabs[idx_support]:
     st.header("📞 الدعم الفني")
-    
-    # 1. اسم المصمم
     st.markdown("### تم تصميم وتنفيذ هذا السيستم بواسطه **م.محمد عبدالله**")
-    # 2. المنصب
     st.markdown("#### رئيس قسم المحطات والتحضيرات بمصنع بيل يارن1")
     st.markdown("---")
-    
-    # 3. التواصل والدعم الفني
     st.markdown("📧 **للتواصل والدعم الفني:** `01274424062`")
     st.markdown("---")
-    
-    # 4. رابط يوتيوب ثابت
     YOUTUBE_LINK = "https://youtube.com/@cardtrutchler?si=bayhxhRXgCzWSpCl"
     st.markdown(f"[📺 قناة اليوتيوب الرسمية]({YOUTUBE_LINK})")
     st.caption(f"رابط القناة: {YOUTUBE_LINK}")
-    
     st.markdown("---")
-    
-    # 5. رفع الصورة (مرة واحدة فقط، ثم لا يمكن تغييرها أبداً)
     support_config = load_support_config()
     current_image_url = support_config.get("image_url", "")
-    
     st.subheader("🖼️ ")
-    
     if current_image_url and current_image_url.strip():
-        # الصورة موجودة مسبقاً -> عرضها فقط (بدون أي خيار للحذف أو التغيير)
         try:
             st.image(current_image_url, use_container_width=True)
             st.caption("✅ ")
         except:
             st.warning("⚠️ تعذر عرض الصورة المحفوظة")
     else:
-        # لا توجد صورة -> السماح بالرفع مرة واحدة فقط (للمدير فقط)
         if st.session_state.get("username") == "admin":
             st.info("📷 لم يتم رفع صورة المطور بعد. يمكنك رفعها الآن (مرة واحدة فقط، ولن يمكن تغييرها لاحقاً).")
             uploaded_img = st.file_uploader("رفع صورة للمطور (jpg, png, ...)", type=APP_CONFIG["ALLOWED_IMAGE_TYPES"], key="support_img_upload_once")
