@@ -1960,20 +1960,49 @@ user_role = st.session_state.get("user_role", "viewer")
 user_permissions = st.session_state.get("user_permissions", ["view"])
 can_edit = (user_role == "admin" or user_role == "editor" or "edit" in user_permissions)
 
-# بناء قائمة التبويبات
+# ------------------------------- بناء قائمة التبويبات حسب الصلاحيات -------------------------------
+all_sheets = load_all_sheets()
+sheets_edit = load_sheets_for_edit()
+st.title(f"{APP_CONFIG['APP_ICON']} {APP_CONFIG['APP_TITLE']}")
+user_role = st.session_state.get("user_role", "viewer")
+username = st.session_state.get("username", "")
+
+# دوال مساعدة للتحقق من الصلاحيات على أي قسم
+def user_can(permission_type):
+    if username == "admin":
+        return True
+    perms = get_user_permissions(username)
+    if perms.get("all_sections", False):
+        return True
+    sections_perms = perms.get("sections_permissions", {})
+    for perms_list in sections_perms.values():
+        if permission_type in perms_list:
+            return True
+    return False
+
+can_add_event = user_can("add_event")
+can_manage_machines = user_can("manage_machines")
+can_edit_data = user_can("edit")   # للتحكم في تبويب التعديل الكامل
+
 tabs_list = ["🔍 بحث متقدم", "📊 تحليل الأعطال", "🔔 الإشعارات"]
-if can_edit:
+if can_add_event:
+    tabs_list.append("➕ إضافة حدث عطل")
+if can_manage_machines:
+    tabs_list.append("🔧 إدارة الماكينات")
+if can_edit_data:
     tabs_list.append("🛠 تعديل وإدارة البيانات")
-# أضف تبويب الدعم الفني في النهاية
 tabs_list.append("📞 الدعم الفني")
 tabs = st.tabs(tabs_list)
 
+# ------------------------------- تبويب البحث -------------------------------
 with tabs[0]:
     search_across_sheets(all_sheets)
 
+# ------------------------------- تبويب تحليل الأعطال -------------------------------
 with tabs[1]:
     failures_analysis_tab(all_sheets)
 
+# ------------------------------- تبويب الإشعارات -------------------------------
 with tabs[2]:
     st.header("🔔 الإشعارات")
     if st.session_state.get("username") == "admin":
@@ -2026,46 +2055,73 @@ with tabs[2]:
         else:
             st.info("✅ لا توجد صيانات قادمة")
 
-if can_edit and len(tabs) > 3:
+# ------------------------------- تبويب إضافة حدث عطل -------------------------------
+if can_add_event:
     with tabs[3]:
+        if sheets_edit:
+            # عرض أقسام مسموح للمستخدم إضافة حدث فيها
+            allowed_for_add = []
+            for sheet_name in sheets_edit.keys():
+                if sheet_name in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]:
+                    continue
+                if has_section_permission(username, sheet_name, "add_event"):
+                    allowed_for_add.append(sheet_name)
+            if allowed_for_add:
+                sheet_name = st.selectbox("اختر القسم:", allowed_for_add, key="add_event_sheet")
+                sheets_edit = add_new_event(sheets_edit, sheet_name)
+            else:
+                st.warning("لا توجد أقسام مسموح لك بإضافة أحداث فيها.")
+        else:
+            st.warning("لا توجد بيانات")
+
+# ------------------------------- تبويب إدارة الماكينات -------------------------------
+if can_manage_machines:
+    idx_manage = 3 + (1 if can_add_event else 0)
+    with tabs[idx_manage]:
+        if sheets_edit:
+            allowed_for_machines = []
+            for sheet_name in sheets_edit.keys():
+                if sheet_name in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]:
+                    continue
+                if has_section_permission(username, sheet_name, "manage_machines"):
+                    allowed_for_machines.append(sheet_name)
+            if allowed_for_machines:
+                sheet_name = st.selectbox("اختر القسم:", allowed_for_machines, key="manage_machines_sheet")
+                manage_machines(sheets_edit, sheet_name)
+            else:
+                st.warning("لا توجد أقسام مسموح لك بإدارة الماكينات فيها.")
+        else:
+            st.warning("لا توجد بيانات")
+
+# ------------------------------- تبويب تعديل وإدارة البيانات الكاملة -------------------------------
+if can_edit_data:
+    idx_edit = 3 + (1 if can_add_event else 0) + (1 if can_manage_machines else 0)
+    with tabs[idx_edit]:
         sheets_edit = manage_data_edit(sheets_edit)
 
-# ------------------------------- تبويب الدعم الفني (الأخير) -------------------------------
-with tabs[-1]:
+# ------------------------------- تبويب الدعم الفني -------------------------------
+idx_support = len(tabs_list) - 1
+with tabs[idx_support]:
     st.header("📞 الدعم الفني")
-    
-    # 1. اسم المصمم
     st.markdown("### تم تصميم وتنفيذ هذا السيستم بواسطه **م.محمد عبدالله**")
-    # 2. المنصب
     st.markdown("#### رئيس قسم المحطات والتحضيرات بمصنع بيل يارن1")
     st.markdown("---")
-    
-    # 3. التواصل والدعم الفني
     st.markdown("📧 **للتواصل والدعم الفني:** `01274424062`")
     st.markdown("---")
-    
-    # 4. رابط يوتيوب ثابت
     YOUTUBE_LINK = "https://youtube.com/@cardtrutchler?si=bayhxhRXgCzWSpCl"
     st.markdown(f"[📺 قناة اليوتيوب الرسمية]({YOUTUBE_LINK})")
     st.caption(f"رابط القناة: {YOUTUBE_LINK}")
-    
     st.markdown("---")
-    
-    # 5. رفع الصورة (مرة واحدة فقط، ثم لا يمكن تغييرها أبداً)
     support_config = load_support_config()
     current_image_url = support_config.get("image_url", "")
-    
     st.subheader("🖼️ ")
-    
     if current_image_url and current_image_url.strip():
-        # الصورة موجودة مسبقاً -> عرضها فقط (بدون أي خيار للحذف أو التغيير)
         try:
             st.image(current_image_url, use_container_width=True)
             st.caption("✅ ")
         except:
             st.warning("⚠️ تعذر عرض الصورة المحفوظة")
     else:
-        # لا توجد صورة -> السماح بالرفع مرة واحدة فقط (للمدير فقط)
         if st.session_state.get("username") == "admin":
             st.info("📷 لم يتم رفع صورة المطور بعد. يمكنك رفعها الآن (مرة واحدة فقط، ولن يمكن تغييرها لاحقاً).")
             uploaded_img = st.file_uploader("رفع صورة للمطور (jpg, png, ...)", type=APP_CONFIG["ALLOWED_IMAGE_TYPES"], key="support_img_upload_once")
