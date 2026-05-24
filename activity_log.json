@@ -1,0 +1,602 @@
+[
+  {
+    "timestamp": "2026-05-11T08:10:34.614935",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جريدتين علويتين خلفي320,240' للماكينة كرد21 (فترة 4640 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:11:01.696765",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جريدتين علويتين خلفي320,240' للماكينة كرد22 (فترة 4640 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:11:38.873053",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جريدتين علويتين خلفي320,240' للماكينة كرد23 (فترة 4640 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:12:22.516911",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جريدتين علويتين خلفي320,240' للماكينة كرد24 (فترة 4640 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:14:12.908350",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جرائد اماميه550' للماكينة كرد24 (فترة 7100 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:14:53.555976",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جرائد اماميه550' للماكينة كرد23 (فترة 7100 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:15:24.727391",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جرائد اماميه550' للماكينة كرد22 (فترة 7100 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:16:04.589745",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جرائد اماميه550' للماكينة كرد21 (فترة 7100 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:16:34.294098",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جرائد اماميه550' للماكينة كرد20 (فترة 7100 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:18:01.645614",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جرائد اماميه550' للماكينة كرد16 (فترة 7100 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:18:33.428564",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جرائد اماميه550' للماكينة كرد15 (فترة 7100 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:18:57.371795",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جرائد اماميه550' للماكينة كرد14 (فترة 7100 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:19:26.213476",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جرائد اماميه550' للماكينة كرد13 (فترة 7100 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:21:46.563586",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جرائد اماميه550' للماكينة كرد9 (فترة 7100 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:22:52.948159",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جرائد اماميه550' للماكينة كرد5 (فترة 7100 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:23:17.764683",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جرائد اماميه550' للماكينة كرد4 (فترة 7100 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:23:38.926890",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جرائد اماميه550' للماكينة كرد3 (فترة 7100 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:24:00.855517",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جرائد اماميه550' للماكينة كرد2 (فترة 7100 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T08:24:35.174950",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جرائد اماميه550' للماكينة كرد1 (فترة 7100 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T10:49:14.428058",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: سيرفس لف السلندر  للماكينة كرد10"
+  },
+  {
+    "timestamp": "2026-05-11T12:15:14.803090",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير زيت جير بوكس الفلاتس' للماكينة كرد1 (فترة 10000 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T12:16:19.294041",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير زيت جير بوكس الفلاتس' للماكينة كرد2 (فترة 12000 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T12:17:17.184516",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير زيت جير بوكس الفلاتس' للماكينة كرد3 (فترة 12000 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T12:19:06.966191",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير زيت جير بوكس الفلاتس' للماكينة كرد4 (فترة 12000 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T12:19:35.207042",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير زيت جير بوكس الفلاتس' للماكينة كرد5 (فترة 12000 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T12:19:53.917878",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير زيت جير بوكس الفلاتس' للماكينة كرد6 (فترة 12000 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T12:20:16.185088",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير زيت جير بوكس الفلاتس' للماكينة كرد7 (فترة 12000 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T12:20:52.039609",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير زيت جير بوكس الفلاتس' للماكينة كرد8 (فترة 12000 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T12:21:19.347835",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير زيت جير بوكس الفلاتس' للماكينة كرد9 (فترة 12000 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T12:22:10.767421",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير زيت جير بوكس الفلاتس' للماكينة كرد10 (فترة 12000 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T12:28:33.608339",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغيير زيت جيربوكس الفلاتس' للماكينة كرد11 (فترة 12000 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T12:30:44.287812",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغيير زيت جيربوكس الفلاتس' للماكينة كرد11 (فترة 12000 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T12:31:12.520694",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغيير زيت جيربوكس الفلاتس' للماكينة كرد12 (فترة 12000 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-11T12:44:48.250725",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: مرجعة العيارات للماكينة كرد10"
+  },
+  {
+    "timestamp": "2026-05-11T15:25:54.422753",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه  للماكينة حوض التنظيف"
+  },
+  {
+    "timestamp": "2026-05-12T04:53:36.415305",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'المرور والتفتيش ع محطات بالكامل' للماكينة تفتيش (فترة 175 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-13T06:41:40.743123",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه  للماكينة حوض البرم"
+  },
+  {
+    "timestamp": "2026-05-13T06:43:47.634083",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: قطع سير 1350 بسبب وجود زكمه. ف البكر ان للماكينة كرد14"
+  },
+  {
+    "timestamp": "2026-05-13T06:44:28.262184",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل:  للمره تانيه قطع سير 1350 بسبب وجود زكمه. ف البكر  للماكينة كرد14"
+  },
+  {
+    "timestamp": "2026-05-13T06:46:18.210193",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: وجود زكمه كبيره ف clu للماكينة CLU-2"
+  },
+  {
+    "timestamp": "2026-05-13T10:16:31.459442",
+    "username": "admin",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'المرور والتفتيش ع محطات بالكامل' للماكينة تفتيش بواسطة م.محمد،شريف"
+  },
+  {
+    "timestamp": "2026-05-14T06:11:03.381395",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: قطع سير1200مسنن دوبل للماكينة كرد2"
+  },
+  {
+    "timestamp": "2026-05-14T06:11:42.430169",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: قطع سير1200مسنن دوبل للماكينة كرد22"
+  },
+  {
+    "timestamp": "2026-05-14T07:15:09.399241",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'زياره مهندس احمد علي ' للماكينة تفتيش (فترة 2 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-14T09:14:02.337634",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: قطع سير 1465 للماكينة كرد19"
+  },
+  {
+    "timestamp": "2026-05-15T10:32:00.910886",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: وجود عطل ف سيفتي ريلاي للماكينة BO-P"
+  },
+  {
+    "timestamp": "2026-05-16T11:22:17.152967",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: سيرفيس عند1238طن للماكينة كرد20"
+  },
+  {
+    "timestamp": "2026-05-16T11:26:31.715779",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'سن الفلاتس' للماكينة كرد20 (فترة 3210 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-16T12:29:28.995477",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه دنابر للماكينة حوض البرم"
+  },
+  {
+    "timestamp": "2026-05-16T14:36:28.308529",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'سن الفلاتس ' للماكينة كرد15 (فترة 3110 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-17T09:46:05.839752",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: سيرفيس عند 1253طن للماكينة كرد15"
+  },
+  {
+    "timestamp": "2026-05-17T10:51:04.946639",
+    "username": "admin",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'سن الفلاتس ' للماكينة كرد15 بواسطة م.محمد عبدالله "
+  },
+  {
+    "timestamp": "2026-05-17T22:04:55.394156",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: قطع سير1200مسسن دوبل للماكينة كرد12"
+  },
+  {
+    "timestamp": "2026-05-18T05:22:50.717799",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'سن الفلاتس ' للماكينة كرد23 (فترة 3100 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-18T15:42:31.275605",
+    "username": "admin",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'سن الفلاتس ' للماكينة كرد23 بواسطة ف.محمود ايهاب"
+  },
+  {
+    "timestamp": "2026-05-18T15:42:55.378839",
+    "username": "admin",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'تغير اول جريده خلفي240' للماكينة كرد23 بواسطة ف.محمود ايهاب"
+  },
+  {
+    "timestamp": "2026-05-18T15:45:23.218731",
+    "username": "admin",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'سن الفلاتس ' للماكينة كرد23 بواسطة ف.محمود ايهاب"
+  },
+  {
+    "timestamp": "2026-05-18T15:48:51.257074",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: سيرفيس للماكينة كرد23"
+  },
+  {
+    "timestamp": "2026-05-18T15:51:01.571691",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: قطع سير 1270 للماكينة كرد23"
+  },
+  {
+    "timestamp": "2026-05-18T16:46:41.983290",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير زيت جير بوكس فيدرولل' للماكينة سيلو2 (فترة 21900 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-18T16:47:13.819398",
+    "username": "admin",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'تغير زيت جير بوكس فيدرولل' للماكينة سيلو2 بواسطة شريف"
+  },
+  {
+    "timestamp": "2026-05-18T16:47:57.327090",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير زيت جير بوكس فيدرولل' للماكينة سيلوا4 (فترة 21900 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-18T16:48:25.603476",
+    "username": "admin",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'تغير زيت جير بوكس فيدرولل' للماكينة سيلوا4 بواسطة شريف"
+  },
+  {
+    "timestamp": "2026-05-19T06:02:53.475509",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'سن الفلاتس' للماكينة كرد1 (فترة 3110 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-19T10:22:09.604559",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه للماكينة كرد23"
+  },
+  {
+    "timestamp": "2026-05-19T10:22:33.418632",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه للماكينة كرد9"
+  },
+  {
+    "timestamp": "2026-05-19T10:23:00.603586",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: صيانه للماكينة كرد1"
+  },
+  {
+    "timestamp": "2026-05-19T10:25:04.039570",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: سيرفيس للماكينة كرد1"
+  },
+  {
+    "timestamp": "2026-05-19T10:25:51.493533",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: قطع سير1200 للماكينة كرد9"
+  },
+  {
+    "timestamp": "2026-05-19T11:29:13.670816",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'فحص عيارات ومسافات رولين الكويلر والديليفري الخاصين بسير700وسير1270' للماكينة كرد1 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-19T11:29:51.557483",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'فحص عيارات ومسافات رولين الكويلر والديليفري الخاصين بسير700وسير1270' للماكينة كرد9 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-19T11:30:19.096597",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'فحص عيارات ومسافات رولين الكويلر والديليفري الخاصين بسير700وسير1270' للماكينة كرد23 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-19T12:41:06.902772",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغيير زيت جير بوكس الفيدرولل' للماكينة سيلو1 (فترة 21900 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-19T12:41:36.715637",
+    "username": "admin",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'تغيير زيت جير بوكس الفيدرولل' للماكينة سيلو1 بواسطة شريف "
+  },
+  {
+    "timestamp": "2026-05-19T12:43:17.429699",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغيير زيت جير بوكس الفيدرولل' للماكينة سيلو3 (فترة 21900 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-19T12:44:07.188561",
+    "username": "admin",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'تغيير زيت جير بوكس الفيدرولل' للماكينة سيلو3 بواسطة شريف "
+  },
+  {
+    "timestamp": "2026-05-20T16:15:11.433509",
+    "username": "admin",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'تغير اول جريده خلفي240' للماكينة كرد16 بواسطة محمود ايهاب،م.محمد عبدالله "
+  },
+  {
+    "timestamp": "2026-05-20T16:16:49.996420",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'سن الفلاتس ' للماكينة كرد16 (فترة 2850 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-20T16:18:06.929500",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'سن الفلاتس  المتحرك' للماكينة كرد16 (فترة 2850 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-20T16:21:34.673386",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: سيرفيس  للماكينة كرد16"
+  },
+  {
+    "timestamp": "2026-05-20T16:22:47.893300",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: قطع سير1270 للماكينة كرد16"
+  },
+  {
+    "timestamp": "2026-05-20T16:23:27.227069",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: قطع سير700 للماكينة كرد24"
+  },
+  {
+    "timestamp": "2026-05-20T16:25:35.922586",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'فحص عيارات رولين الكويلر ومنطقه الديلفري الخاصين بسير700,1270' للماكينة كرد16 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-20T16:26:18.461746",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'فحص عيارات رولين الكويلر ومنطقه الديلفري الخاصين بسير700,1270' للماكينة كرد24 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-20T16:27:03.457971",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'فحص عيارات رولين الكويلر ومنطقه الديلفري الخاصين بسير700,1270' للماكينة كرد24 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-20T19:15:02.628379",
+    "username": "admin",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'فحص عيارات رولين الكويلر ومنطقه الديلفري الخاصين بسير700,1270' للماكينة كرد24 بواسطة حسام ،محمود ايهاب"
+  },
+  {
+    "timestamp": "2026-05-20T19:18:17.249665",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'فحص عيارات رولين الكويلر ومنطقه الديلفري الخاصين بسير700,1270' للماكينة كرد16 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-20T19:37:38.611110",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'فحص عيارات رولين الكويلر ومنطقه الديلفري الخاصين بسير700,1270' للماكينة كرد16 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-20T19:38:10.033022",
+    "username": "admin",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'فحص عيارات رولين الكويلر ومنطقه الديلفري الخاصين بسير700,1270' للماكينة كرد16 بواسطة محمود ايهاب ،حسام"
+  },
+  {
+    "timestamp": "2026-05-21T03:14:56.872252",
+    "username": "admin",
+    "action_type": "add_event",
+    "details": "تم إضافة عطل: قطع سير 700 للماكينة كرد17"
+  },
+  {
+    "timestamp": "2026-05-21T16:21:04.896973",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'فحص عيارات ومسافات رولين الكويلر والديليفري الخاصين بسير700وسير1270' للماكينة كرد17 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-21T16:23:39.690411",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'فحص عيارات ومسافات رولين الكويلر والديليفري الخاصين بسير700وسير1270' للماكينة كرد4 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-21T16:26:11.361463",
+    "username": "admin",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'فحص عيارات ومسافات رولين الكويلر والديليفري الخاصين بسير700وسير1270' للماكينة كرد4 (فترة 720 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-21T16:27:03.858645",
+    "username": "admin",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'تغير اول جريده خلفي240' للماكينة كرد4 بواسطة مصطفي،حسام"
+  },
+  {
+    "timestamp": "2026-05-21T16:27:23.690665",
+    "username": "admin",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'تغير اول جريده خلفي240' للماكينة كرد17 بواسطة مصطفي،حسام"
+  },
+  {
+    "timestamp": "2026-05-21T16:38:02.163835",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'سن الفلاتس' للماكينة كرد4 (فترة 2800 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-21T16:39:27.090211",
+    "username": "مدير_صيانة",
+    "action_type": "execute_maintenance",
+    "details": "تم تنفيذ صيانة 'سن الفلاتس' للماكينة كرد4 بواسطة حسام,م.عبدالله"
+  },
+  {
+    "timestamp": "2026-05-21T16:42:41.249199",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جرائد اماميه550' للماكينة كرد17 (فترة 7100 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-21T16:43:19.342508",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'سن الفلاتس' للماكينة كرد17 (فترة 2800 ساعة)"
+  },
+  {
+    "timestamp": "2026-05-21T16:46:32.121934",
+    "username": "مدير_صيانة",
+    "action_type": "add_maintenance_task",
+    "details": "تم إضافة بند صيانة 'تغير جرائد اماميه550' للماكينة كرد17 (فترة 7100 ساعة)"
+  }
+]
