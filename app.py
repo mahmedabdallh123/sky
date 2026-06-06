@@ -16,7 +16,7 @@ from github import Github, GithubException
 APP_CONFIG = {
     "APP_TITLE": "بيل يارن1- CMMS",
     "APP_ICON": "🏭",
-    "REPO_NAME": "mahmedabdallh123/stations",
+    "REPO_NAME": "mahmedabdallh123/sky",
     "BRANCH": "main",
     "FILE_PATH": "l9.xlsx",
     "LOCAL_FILE": "l9.xlsx",
@@ -61,8 +61,8 @@ EQUIPMENT_CONFIG_FILE = "equipment_config.json"
 SUPPORT_CONFIG_FILE = "support_config.json"
 
 GITHUB_EXCEL_URL = f"https://github.com/{APP_CONFIG['REPO_NAME'].split('/')[0]}/{APP_CONFIG['REPO_NAME'].split('/')[1]}/raw/{APP_CONFIG['BRANCH']}/{APP_CONFIG['FILE_PATH']}"
-GITHUB_USERS_URL = "https://raw.githubusercontent.com/mahmedabdallh123/stations/refs/heads/main/users.json"
-GITHUB_REPO_USERS = "mahmedabdallh123/stations"
+GITHUB_USERS_URL = "https://raw.githubusercontent.com/mahmedabdallh123/sky/refs/heads/main/users.json"
+GITHUB_REPO_USERS = "mahmedabdallh123/sky"
 GITHUB_TOKEN = st.secrets.get("github", {}).get("token", None)
 GITHUB_AVAILABLE = GITHUB_TOKEN is not None
 ACTIVITY_LOG_FILE = "activity_log.json"
@@ -208,6 +208,119 @@ def get_critical_spare_parts():
     result = critical[["اسم القطعة", "القسم", "الرصيد الموجود", "حد_الإنذار"]].to_dict('records')
     return result
 
+def admin_users_management_tab():
+    st.header("👥 إدارة المستخدمين والصلاحيات")
+    st.info("هنا يمكنك إضافة، تعديل، أو حذف المستخدمين وتحديد صلاحياتهم على الأقسام.")
+    
+    users = load_users_from_github()
+    sections_list = get_all_sections_from_excel()
+    
+    st.subheader("📋 قائمة المستخدمين")
+    for username, info in users.items():
+        with st.expander(f"👤 {username} (الدور: {info.get('role', 'viewer')})"):
+            col1, col2 = st.columns(2)
+            with col1:
+                new_password = st.text_input(f"كلمة المرور الجديدة لـ {username}", type="password", key=f"pass_{username}")
+                if new_password:
+                    if st.button(f"تغيير كلمة المرور", key=f"change_pass_{username}"):
+                        users[username]["password"] = new_password
+                        if save_users_to_github(users):
+                            st.success(f"تم تغيير كلمة مرور {username}")
+                            st.rerun()
+                        else:
+                            st.error("فشل حفظ التغييرات")
+            with col2:
+                # الحصول على الدور الحالي مع قيمة افتراضية آمنة
+                current_role = info.get("role", "viewer")
+                role_options = ["admin", "editor", "viewer"]
+                # إذا كان الدور الحالي ليس ضمن الخيارات، نستخدم "viewer"
+                if current_role not in role_options:
+                    current_role = "viewer"
+                new_role = st.selectbox(
+                    f"الدور لـ {username}",
+                    role_options,
+                    index=role_options.index(current_role),
+                    key=f"role_{username}"
+                )
+                if new_role != info.get("role"):
+                    users[username]["role"] = new_role
+                    if save_users_to_github(users):
+                        st.success(f"تم تغيير دور {username} إلى {new_role}")
+                        st.rerun()
+            
+            st.markdown("#### صلاحيات الأقسام")
+            # خيار الوصول لجميع الأقسام
+            all_sections_access = st.checkbox("منح الوصول إلى جميع الأقسام (بدون تفصيل)", value=info.get("permissions", {}).get("all_sections", False), key=f"all_sections_{username}")
+            if all_sections_access:
+                users[username]["permissions"] = {"all_sections": True}
+                users[username]["sections_permissions"] = {}
+            else:
+                users[username]["permissions"] = {"all_sections": False}
+                if "sections_permissions" not in users[username]:
+                    users[username]["sections_permissions"] = {}
+                for section in sections_list:
+                    current_perms = users[username]["sections_permissions"].get(section, [])
+                    st.markdown(f"**{section}**")
+                    col_a, col_b, col_c, col_d = st.columns(4)
+                    with col_a:
+                        view_perm = st.checkbox("عرض (view)", value=("view" in current_perms), key=f"view_{username}_{section}")
+                    with col_b:
+                        edit_perm = st.checkbox("تعديل (edit)", value=("edit" in current_perms), key=f"edit_{username}_{section}")
+                    with col_c:
+                        add_event_perm = st.checkbox("إضافة حدث (add_event)", value=("add_event" in current_perms), key=f"add_{username}_{section}")
+                    with col_d:
+                        manage_machines_perm = st.checkbox("إدارة الماكينات (manage_machines)", value=("manage_machines" in current_perms), key=f"manage_{username}_{section}")
+                    
+                    new_perms = []
+                    if view_perm: new_perms.append("view")
+                    if edit_perm: new_perms.append("edit")
+                    if add_event_perm: new_perms.append("add_event")
+                    if manage_machines_perm: new_perms.append("manage_machines")
+                    users[username]["sections_permissions"][section] = new_perms
+            
+            if st.button(f"💾 حفظ صلاحيات {username}", key=f"save_perms_{username}"):
+                if save_users_to_github(users):
+                    st.success(f"تم حفظ صلاحيات {username}")
+                    st.rerun()
+                else:
+                    st.error("فشل الحفظ")
+            
+            if username != "admin":
+                if st.button(f"🗑️ حذف المستخدم {username}", key=f"delete_{username}"):
+                    confirm = st.text_input(f"تأكيد حذف {username} - اكتب YES", key=f"confirm_{username}")
+                    if confirm == "YES":
+                        del users[username]
+                        if save_users_to_github(users):
+                            st.success(f"تم حذف {username}")
+                            st.rerun()
+                        else:
+                            st.error("فشل الحذف")
+                    elif confirm:
+                        st.warning("لم يتم التأكيد، اكتب YES")
+    
+    st.subheader("➕ إضافة مستخدم جديد")
+    with st.form("add_user_form"):
+        new_username = st.text_input("اسم المستخدم")
+        new_password = st.text_input("كلمة المرور", type="password")
+        new_role = st.selectbox("الدور", ["viewer", "editor", "admin"])
+        submit = st.form_submit_button("إضافة المستخدم")
+        if submit:
+            if not new_username or not new_password:
+                st.error("اسم المستخدم وكلمة المرور مطلوبة")
+            elif new_username in users:
+                st.error("اسم المستخدم موجود بالفعل")
+            else:
+                users[new_username] = {
+                    "password": new_password,
+                    "role": new_role,
+                    "permissions": {"all_sections": False},
+                    "sections_permissions": {}
+                }
+                if save_users_to_github(users):
+                    st.success(f"تم إضافة المستخدم {new_username}")
+                    st.rerun()
+                else:
+                    st.error("فشل الحفظ")
 # ------------------------------- دوال سجل النشاطات -------------------------------
 def log_activity(action_type, details, username=None):
     if username is None:
@@ -1997,19 +2110,22 @@ if can_manage_machines:
     tabs_list.append("🔧 إدارة الماكينات")
 if can_edit_data:
     tabs_list.append("🛠 تعديل وإدارة البيانات")
+if username == "admin":
+    tabs_list.append("👥 إدارة المستخدمين")
 tabs_list.append("📞 الدعم الفني")
+
 tabs = st.tabs(tabs_list)
+idx = 0
 
-# ------------------------------- تبويب البحث -------------------------------
-with tabs[0]:
+with tabs[idx]:
     search_across_sheets(all_sheets)
+idx += 1
 
-# ------------------------------- تبويب تحليل الأعطال -------------------------------
-with tabs[1]:
+with tabs[idx]:
     failures_analysis_tab(all_sheets)
+idx += 1
 
-# ------------------------------- تبويب الإشعارات -------------------------------
-with tabs[2]:
+with tabs[idx]:
     st.header("🔔 الإشعارات")
     if st.session_state.get("username") == "admin":
         st.subheader("📋 آخر النشاطات")
@@ -2060,12 +2176,10 @@ with tabs[2]:
                 st.write(f"- {row['المعدة']}: {row['اسم_البند']} (بعد {days} يوم)")
         else:
             st.info("✅ لا توجد صيانات قادمة")
+idx += 1
 
-# ------------------------------- تبويب إضافة حدث عطل -------------------------------
 if can_add_event:
-    # حساب الفهرس المناسب: بعد أول 3 تبويبات ثابتة
-    idx_add = 3
-    with tabs[idx_add]:
+    with tabs[idx]:
         if sheets_edit:
             allowed_for_add = []
             for sheet_name in sheets_edit.keys():
@@ -2074,17 +2188,16 @@ if can_add_event:
                 if has_section_permission(username, sheet_name, "add_event"):
                     allowed_for_add.append(sheet_name)
             if allowed_for_add:
-                sheet_name = st.selectbox("اختر القسم:", allowed_for_add, key="add_event_sheet_main")  # مفتاح فريد
+                sheet_name = st.selectbox("اختر القسم:", allowed_for_add, key="add_event_sheet_main")
                 sheets_edit = add_new_event(sheets_edit, sheet_name)
             else:
                 st.warning("لا توجد أقسام مسموح لك بإضافة أحداث فيها.")
         else:
             st.warning("لا توجد بيانات")
+    idx += 1
 
-# ------------------------------- تبويب إدارة الماكينات -------------------------------
 if can_manage_machines:
-    idx_manage = 3 + (1 if can_add_event else 0)
-    with tabs[idx_manage]:
+    with tabs[idx]:
         if sheets_edit:
             allowed_for_machines = []
             for sheet_name in sheets_edit.keys():
@@ -2093,22 +2206,25 @@ if can_manage_machines:
                 if has_section_permission(username, sheet_name, "manage_machines"):
                     allowed_for_machines.append(sheet_name)
             if allowed_for_machines:
-                sheet_name = st.selectbox("اختر القسم:", allowed_for_machines, key="manage_machines_sheet_main")  # مفتاح فريد
+                sheet_name = st.selectbox("اختر القسم:", allowed_for_machines, key="manage_machines_sheet_main")
                 manage_machines(sheets_edit, sheet_name, unique_suffix="main")
             else:
                 st.warning("لا توجد أقسام مسموح لك بإدارة الماكينات فيها.")
         else:
             st.warning("لا توجد بيانات")
+    idx += 1
 
-# ------------------------------- تبويب تعديل وإدارة البيانات الكاملة -------------------------------
 if can_edit_data:
-    idx_edit = 3 + (1 if can_add_event else 0) + (1 if can_manage_machines else 0)
-    with tabs[idx_edit]:
+    with tabs[idx]:
         sheets_edit = manage_data_edit(sheets_edit)
+    idx += 1
 
-# ------------------------------- تبويب الدعم الفني -------------------------------
-idx_support = len(tabs_list) - 1
-with tabs[idx_support]:
+if username == "admin":
+    with tabs[idx]:
+        admin_users_management_tab()
+    idx += 1
+
+with tabs[idx]:
     st.header("📞 الدعم الفني")
     st.markdown("### تم تصميم وتنفيذ هذا السيستم بواسطه **م.محمد عبدالله**")
     st.markdown("#### رئيس قسم المحطات والتحضيرات بمصنع بيل يارن1")
@@ -2121,11 +2237,11 @@ with tabs[idx_support]:
     st.markdown("---")
     support_config = load_support_config()
     current_image_url = support_config.get("image_url", "")
-    st.subheader("🖼️ ")
+    st.subheader("🖼️ صورة المطور")
     if current_image_url and current_image_url.strip():
         try:
             st.image(current_image_url, use_container_width=True)
-            st.caption("✅ ")
+            st.caption("✅ صورة المطور الحالية")
         except:
             st.warning("⚠️ تعذر عرض الصورة المحفوظة")
     else:
