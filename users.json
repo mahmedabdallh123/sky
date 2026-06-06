@@ -20,7 +20,7 @@
         "permissions": {
             "all_sections": false
         },
-        "role": "user",
+        "role": "viewer",
         "sections_permissions": {
             "البرم": [
                 "view",
