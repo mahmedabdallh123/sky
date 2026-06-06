@@ -208,6 +208,62 @@ def get_critical_spare_parts():
     result = critical[["اسم القطعة", "القسم", "الرصيد الموجود", "حد_الإنذار"]].to_dict('records')
     return result
 
+# ------------------------------- دوال إدارة المستخدمين من داخل التطبيق -------------------------------
+def load_users_from_github():
+    """تحميل users.json من GitHub مباشرة مع معالجة الصلاحيات"""
+    try:
+        response = requests.get(GITHUB_USERS_URL, timeout=10)
+        response.raise_for_status()
+        users_data = response.json()
+        for username, info in users_data.items():
+            if "permissions" in info and isinstance(info["permissions"], list):
+                if "all" in info["permissions"]:
+                    info["permissions"] = {"all_sections": True}
+                else:
+                    info["permissions"] = {"all_sections": False}
+            elif "permissions" not in info:
+                info["permissions"] = {"all_sections": False}
+            if "sections_permissions" not in info:
+                info["sections_permissions"] = {}
+        return users_data
+    except Exception as e:
+        st.error(f"فشل تحميل المستخدمين من GitHub: {e}")
+        if os.path.exists(USERS_FILE):
+            with open(USERS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return {"admin": {"password": "1234", "role": "admin", "permissions": {"all_sections": True}, "sections_permissions": {}}}
+
+def save_users_to_github(users_data):
+    """رفع users.json إلى GitHub"""
+    try:
+        token = st.secrets.get("github", {}).get("token", None)
+        if not token:
+            st.error("❌ GitHub token غير متوفر")
+            return False
+        g = Github(token)
+        repo = g.get_repo(GITHUB_REPO_USERS)
+        users_json = json.dumps(users_data, indent=4, ensure_ascii=False, sort_keys=True)
+        try:
+            contents = repo.get_contents("users.json", ref="main")
+            repo.update_file(path="users.json", message="تحديث صلاحيات المستخدمين", content=users_json, sha=contents.sha, branch="main")
+        except GithubException as e:
+            if e.status == 404:
+                repo.create_file(path="users.json", message="إنشاء ملف المستخدمين", content=users_json, branch="main")
+            else:
+                raise
+        return True
+    except Exception as e:
+        st.error(f"❌ فشل رفع المستخدمين: {e}")
+        return False
+
+def get_all_sections_from_excel():
+    """استخراج جميع أقسام الماكينات من ملف Excel الحالي"""
+    sheets = load_all_sheets()
+    if not sheets:
+        return []
+    sections = [name for name in sheets.keys() if name not in [APP_CONFIG["SPARE_PARTS_SHEET"], APP_CONFIG["MAINTENANCE_SHEET"]]]
+    return sections
+
 def admin_users_management_tab():
     st.header("👥 إدارة المستخدمين والصلاحيات")
     st.info("هنا يمكنك إضافة، تعديل، أو حذف المستخدمين وتحديد صلاحياتهم على الأقسام.")
@@ -230,10 +286,8 @@ def admin_users_management_tab():
                         else:
                             st.error("فشل حفظ التغييرات")
             with col2:
-                # الحصول على الدور الحالي مع قيمة افتراضية آمنة
                 current_role = info.get("role", "viewer")
                 role_options = ["admin", "editor", "viewer"]
-                # إذا كان الدور الحالي ليس ضمن الخيارات، نستخدم "viewer"
                 if current_role not in role_options:
                     current_role = "viewer"
                 new_role = st.selectbox(
@@ -249,7 +303,6 @@ def admin_users_management_tab():
                         st.rerun()
             
             st.markdown("#### صلاحيات الأقسام")
-            # خيار الوصول لجميع الأقسام
             all_sections_access = st.checkbox("منح الوصول إلى جميع الأقسام (بدون تفصيل)", value=info.get("permissions", {}).get("all_sections", False), key=f"all_sections_{username}")
             if all_sections_access:
                 users[username]["permissions"] = {"all_sections": True}
@@ -321,6 +374,7 @@ def admin_users_management_tab():
                     st.rerun()
                 else:
                     st.error("فشل الحفظ")
+
 # ------------------------------- دوال سجل النشاطات -------------------------------
 def log_activity(action_type, details, username=None):
     if username is None:
@@ -369,11 +423,9 @@ def load_activity_log():
 
 # ------------------------------- دوال الصيانة الوقائية -------------------------------
 def load_maintenance_tasks():
-    """تحميل مهام الصيانة الوقائية مع معالجة خطأ عدم وجود الورقة"""
     if not os.path.exists(APP_CONFIG["LOCAL_FILE"]):
         return pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
     try:
-        # محاولة قراءة الورقة المحددة
         df = pd.read_excel(APP_CONFIG["LOCAL_FILE"], sheet_name=APP_CONFIG["MAINTENANCE_SHEET"])
         df.columns = df.columns.astype(str).str.strip()
         for col in APP_CONFIG["MAINTENANCE_COLUMNS"]:
@@ -387,9 +439,7 @@ def load_maintenance_tasks():
         if "الفترة_بالأيام" in df.columns:
             df["الفترة_بالأيام"] = pd.to_numeric(df["الفترة_بالأيام"], errors='coerce').fillna(0)
         return df
-    except Exception as e:
-        # إذا لم توجد الورقة، نرجع DataFrame فارغ بدون رسالة خطأ
-        # (الخطأ يحدث فقط عند محاولة القراءة، نتعامل معه بهدوء)
+    except Exception:
         return pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
 
 def get_tasks_for_equipment(equipment_name):
@@ -399,7 +449,6 @@ def get_tasks_for_equipment(equipment_name):
     return df[df["المعدة"] == equipment_name]
 
 def add_maintenance_task(sheets_edit, equipment, task_name, period_hours, start_date=None, notes="", default_spare="", image_url=None):
-    # التأكد من وجود الورقة في sheets_edit
     if APP_CONFIG["MAINTENANCE_SHEET"] not in sheets_edit:
         sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
     df = sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]]
@@ -870,7 +919,6 @@ def save_excel_locally(sheets_dict):
         if "temp_spare_parts_df" in st.session_state:
             sheets_dict[APP_CONFIG["SPARE_PARTS_SHEET"]] = st.session_state.temp_spare_parts_df
             del st.session_state.temp_spare_parts_df
-        # التأكد من وجود ورقة الصيانة الوقائية إذا كانت فارغة ولكن موجودة في sheets_dict
         if APP_CONFIG["MAINTENANCE_SHEET"] not in sheets_dict:
             sheets_dict[APP_CONFIG["MAINTENANCE_SHEET"]] = load_maintenance_tasks()
         with pd.ExcelWriter(APP_CONFIG["LOCAL_FILE"], engine="openpyxl") as writer:
@@ -1391,7 +1439,6 @@ def manage_machines(sheets_edit, sheet_name, unique_suffix=""):
         st.info("لا توجد ماكينات مسجلة في هذا القسم بعد")
     st.markdown("---")
     
-    # إضافة ماكينة جديدة
     with st.form(key=f"add_machine_form_{sheet_name}_{unique_suffix}"):
         new_machine = st.text_input("➕ اسم الماكينة الجديدة:", key=f"new_machine_input_{sheet_name}_{unique_suffix}")
         submitted_add = st.form_submit_button("➕ إضافة ماكينة")
@@ -1410,7 +1457,6 @@ def manage_machines(sheets_edit, sheet_name, unique_suffix=""):
             else:
                 st.warning("يرجى إدخال اسم الماكينة")
     
-    # حذف ماكينة
     if equipment_list:
         st.markdown("#### 🗑️ حذف ماكينة")
         if st.session_state.get("username") == "admin":
@@ -1541,7 +1587,6 @@ def add_new_event(sheets_edit, sheet_name):
 
 # ------------------------------- دوال مساعدة للصيانة الوقائية -------------------------------
 def execute_maintenance_with_date(sheets_edit, equipment_name, task_name, execution_date, performed_by, used_spare_part="", used_quantity=1, image_url=None):
-    # التأكد من وجود ورقة الصيانة الوقائية
     if APP_CONFIG["MAINTENANCE_SHEET"] not in sheets_edit:
         sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = pd.DataFrame(columns=APP_CONFIG["MAINTENANCE_COLUMNS"])
     df = sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]]
@@ -2014,7 +2059,6 @@ def manage_data_edit(sheets_edit):
         sheets_edit[APP_CONFIG["SPARE_PARTS_SHEET"]] = load_spare_parts()
     if APP_CONFIG["MAINTENANCE_SHEET"] not in sheets_edit:
         sheets_edit[APP_CONFIG["MAINTENANCE_SHEET"]] = load_maintenance_tasks()
-    # إزالة تبويب إضافة حدث عطل لأنه أصبح مستقلاً
     tab_names = ["📋 عرض الأقسام", "🔧 إدارة الماكينات", "➕ إضافة قسم جديد", "📦 قطع الغيار", "🛠 الصيانة الوقائية"]
     tabs_edit = st.tabs(tab_names)
     with tabs_edit[0]:
