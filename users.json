@@ -68,7 +68,7 @@
         "permissions": {
             "all_sections": false
         },
-        "role": "viewer",
+        "role": "user",
         "sections_permissions": {
             "الغزل": [
                 "view",
