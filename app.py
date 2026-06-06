@@ -14,7 +14,7 @@ from github import Github, GithubException
 
 # ------------------------------- الإعدادات الثابتة -------------------------------
 APP_CONFIG = {
-    "APP_TITLE": "بيل يارن1- CMMS",
+    "APP_TITLE": "سكاي1- CMMS",
     "APP_ICON": "🏭",
     "REPO_NAME": "mahmedabdallh123/sky",
     "BRANCH": "main",
